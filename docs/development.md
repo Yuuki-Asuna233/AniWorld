@@ -75,21 +75,26 @@ npm run sync
 
 | 命令 | 用途 |
 |---|---|
-| `npm run sync-full -- --start-year 2010 --end-year 2026` | 首次推荐：同步 2010—2026 各季度资料，每季度最多读取 250 条候选记录 |
-| `npm run sync-oi` | 补充缺失的 OIAPI 信息 |
+| `npm run data:import` | 首次推荐：导入仓库附带的番剧目录，不需联网 |
+| `npm run data:import -- /path/to/catalog.json` | 导入指定目录快照，备份并补齐缺失值，保留手工修改 |
+| `npm run data:export -- /path/to/catalog.json` | 只读导出 anime_meta 的目录字段，不导出其他表 |
+| `npm run sync-full -- --start-year 2010 --end-year 2026` | 历史元数据同步；每季度最多读取 250 条候选记录，不是首次导入的必需步骤 |
+| `npm run sync-oi` | 旧 OIAPI 补齐入口，当前自动写入被禁用，不能用于有效补齐 |
 | `npm run rag:status` | 离线查看当前索引状态，同样会初始化数据库 |
 
-历史同步耗时较长，需能访问 AniList；中文名称与搜索标识补充还需访问 OIAPI。检查结束统计及网络错误。当前 `--batch` 的范围固定到 2026 年春季，首次导入请用表中的年份参数。不要加 `--clear` 清空已有目录。
+首次使用优先导入 [目录数据包](../data/seed/README.md)。历史同步耗时较长，需能访问 AniList 和 OIAPI；检查结束统计及网络错误，并遵守数据来源的使用条款。当前 `--batch` 的范围固定到 2026 年春季，不能代替明确的年份范围。不要加 `--clear` 清空已有目录。
 
 脚本通过统一环境加载器读取根 `.env`。完成脚本后再启动 API。服务使用内存中的 `sql.js` 数据快照，独立进程不能同时写同一个文件；文件锁是所有权保护，不应为了强行运行脚本而删除。
 
-使用下文的 PM2 进程名时，后续手动同步可执行：
+使用下文的 PM2 进程名时，导入目录可执行：
 
 ```sh
 pm2 stop aniworld
-npm run sync-full -- --start-year 2010 --end-year 2026
+npm run data:import
 pm2 restart aniworld
 ```
+
+目录导出读取磁盘上的上次持久化快照，不会迁移或修改源数据库。需要包含最后一次操作时，先正常停止服务再导出。不要把整个 `.db` 文件作为目录发布，它还保存账户及 Agent 数据。
 
 备份、独立 RAG 存储和恢复规则见 [运行数据说明](../data/runtime/README.md)。
 

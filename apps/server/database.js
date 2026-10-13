@@ -10,6 +10,7 @@ const { DatabaseFileStore } = require('./src/database/file-store');
 const { RagFileStore } = require('./src/database/rag-store');
 const { createAuthenticationRepository } = require('./src/database/authentication');
 const { createCatalogSearchRepository } = require('./src/database/catalog-search');
+const { CATALOG_FIELDS, fillMissingCatalogFields } = require('./src/database/catalog-seed');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -696,6 +697,63 @@ function upsertAnimeMetaBatch(metaList) {
     return { error: e.message };
   }
   return { success: true, count };
+}
+
+// Import a directory snapshot without replacing live data or manual edits.
+// The standalone importer owns the database lock for this entire transaction.
+function importAnimeCatalog(records) {
+  const stats = { inserted: 0, updated: 0, unchanged: 0 };
+  try {
+    suppressSave = true;
+    cancelPendingSave();
+    db.run('BEGIN TRANSACTION');
+    for (const incoming of records) {
+      const current = getAnimeMetaById(incoming.anilist_id);
+      let merged = incoming;
+      if (current) {
+        const protectedFields = new Set();
+        const edits = db.exec('SELECT changed_fields_json FROM anime_meta_edits WHERE anilist_id = ?', [incoming.anilist_id]);
+        for (const row of edits[0]?.values || []) {
+          // Malformed edit history aborts the import instead of silently
+          // overwriting values whose ownership cannot be established.
+          for (const field of Object.keys(JSON.parse(row[0]))) protectedFields.add(field);
+        }
+        merged = fillMissingCatalogFields(current, incoming, protectedFields);
+        if (!CATALOG_FIELDS.some(field => merged[field] !== current[field])) {
+          stats.unchanged++;
+          continue;
+        }
+      }
+      if (current) {
+        const fields = CATALOG_FIELDS.filter(field => field !== 'anilist_id' && merged[field] !== current[field]);
+        const assignments = fields.map(field => `${field} = ?`);
+        const values = fields.map(field => merged[field]);
+        if (fields.includes('start_date') || fields.includes('season_year')) {
+          assignments.push('start_date_key = ?');
+          values.push(animeStartDateValue(merged));
+        }
+        const now = Math.floor(Date.now() / 1000);
+        assignments.push('last_updated = ?');
+        values.push(now, incoming.anilist_id);
+        db.run(`UPDATE anime_meta SET ${assignments.join(', ')} WHERE anilist_id = ?`, values);
+        queueAnimeForRag(incoming.anilist_id, now);
+        stats.updated++;
+      } else {
+        const result = upsertAnimeMeta(merged);
+        if (!result?.success) throw new Error(result?.error || '目录记录未写入');
+        stats.inserted++;
+      }
+    }
+    if (searchIndexReady) rebuildAnimeSearchIndex();
+    db.run('COMMIT');
+    suppressSave = false;
+    saveToFile();
+    return { success: true, ...stats };
+  } catch (error) {
+    try { db.run('ROLLBACK'); } catch (_) {}
+    suppressSave = false;
+    return { error: error.message };
+  }
 }
 
 function getAnimeMetaById(anilistId) {
@@ -3060,6 +3118,7 @@ module.exports = {
   // Anime Meta
   upsertAnimeMeta,
   upsertAnimeMetaBatch,
+  importAnimeCatalog,
   getAnimeMetaById,
   getAdminAnimePage,
   updateAnimeMetaByAdmin,

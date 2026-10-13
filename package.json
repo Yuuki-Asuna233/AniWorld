@@ -11,6 +11,8 @@
     "sync": "node scripts/data/sync-db.js",
     "sync-full": "node scripts/data/sync-db.js --full",
     "sync-oi": "node scripts/data/sync-db.js --oi-only",
+    "data:export": "node scripts/data/export-catalog.js",
+    "data:import": "node scripts/data/import-catalog.js",
     "test": "node tests/server/agent-memory-regression.js && node tests/server/agent-regression.js && node tests/server/agent-capability-matrix.js && node tests/server/rag-regression.js",
     "test:agent": "node tests/server/agent-regression.js && node tests/server/agent-capability-matrix.js",
     "test:agent-capability": "node tests/server/agent-capability-matrix.js",
