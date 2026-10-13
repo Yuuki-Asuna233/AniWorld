@@ -44,17 +44,19 @@ AniWorld 将网页、Node.js API、白羽 Agent 与基于 [Kazumi](https://githu
 
 ## 使用入口
 
-安装包需要自行构建，使用前请配置自己的服务端地址。
+下载：[Android APK](https://github.com/Yuuki-Asuna233/AniWorld/releases/tag/android-v2.2.10) · [Windows ZIP](https://github.com/Yuuki-Asuna233/AniWorld/releases/tag/windows-v2.2.10)
 
-网页访问部署者提供的服务地址；客户端安装部署者提供的 AniWorld APK 或 Windows ZIP，并在设置中填写可访问的服务端地址。服务器可选择是否开启访问门禁；云端个人数据需要注册登录。
+先部署并启动下面的服务端，再安装客户端，在首次连接页填写服务器地址。安装包默认地址为 `http://127.0.0.1:3000`；手机连接电脑上的服务时，要改成电脑的局域网 IP。没有共享服务器，也不附带模型 API Key。
+
+网页直接访问自己的服务地址。访问门禁默认关闭，需要云端同步追番和观看记录时再注册登录。
 
 **Windows 请完整解压发布包，保留同目录的 DLL、data 和其他运行文件。** 更新时使用完整的新发布包。Kazumi 的 Releases、应用商店和社区渠道发布的是上游 Kazumi，不是 AniWorld 安装包。
 
 本仓库提供自行构建和发布流程，参见 [客户端说明](apps/client/README.md)。服务端更新接口为 `/kazumi/v1/app/latest?platform=android` 或 `platform=windows`，安装包放在部署者配置的发布目录中。
 
-## 第一次部署与生成 APK
+## 第一次使用与自行构建
 
-从未使用过 AniWorld 的用户，请按 [从零部署到首次播放](docs/getting-started.md) 操作：完整源码 → 生成服务配置 → 初始化目录 → 手机连通检查 → 生成自己的签名 → 构建 APK → 选择播放源。
+初次使用先完成服务端部署与番剧资料同步，安装包的 Release 页面有对应步骤。想自己构建 APK，可按 [从零部署到首次播放](docs/getting-started.md) 继续配置 Flutter、签名和构建环境；直接使用上面的安装包不需要这些工具。
 
 客户端支持 **AGE、DM84、enlie** 三个播放源，可在番剧详情页选择。
 
@@ -79,10 +81,15 @@ npm run setup:env
 | `ACCESS_GATE_SECRET` | 开启门禁时必填，至少 32 个字符的另一条随机密钥 |
 
 ```powershell
+npm run sync-full -- --start-year 2010 --end-year 2026
 npm start
 ```
 
-浏览器打开 <http://localhost:3000> ；开启门禁的服务器才需要输入访问密码。首次启动会创建 `data/runtime/anime_user.db`，60 秒后开始后台元数据同步，随后默认每 12 小时同步一次。初始数据库并不附带完整番剧库，内容加载还取决于上游可达性和同步进度。
+首次部署推荐先同步 **2010—2026 年各季度**的番剧资料，等同步结束再启动服务。脚本从 AniList 获取目录，并尝试补充中文名称；每季度最多读取 250 条候选记录，不保证收录所有作品。历史同步耗时较长，需要服务器能访问 AniList 和 OIAPI。检查结束统计和网络错误，不能只看进程是否退出。
+
+已有服务先停止再同步，完成后重新启动。不要让 API 和同步脚本同时写数据库，也不要加 `--clear` 清空已有目录。这里使用年份参数；当前 `--batch` 只同步到 2026 年春季，不能代替上面的命令。
+
+浏览器打开 <http://localhost:3000>；开启门禁的服务器才需要输入访问密码。数据保存在 `data/runtime/anime_user.db`，启动 60 秒后开始后台同步近期季度，随后默认每 12 小时更新一次。
 
 LLM、Embedding、SMTP、网页搜索与弹幕凭据为按功能选配；不配置模型仍可使用基础页面，但白羽不会自动替代模型执行完整对话。
 

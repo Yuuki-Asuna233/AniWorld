@@ -4,12 +4,12 @@
  *
  * 用法：
  *   node sync-db.js              : 同步当季 + 下一季（自动内联 OIAPI 获取中文名并同时写入）
- *   node sync-db.js --clear      : 清空数据库，然后同步当季 + 下一季（推荐）
- *   node sync-db.js --full       : 全量同步（从 2010 年起所有季度，数据量大）
+ *   node sync-db.js --clear      : 清空番剧目录后同步近期季度；只在明确要重建目录时使用
+ *   node sync-db.js --full --start-year 2010 --end-year 2026 : 首次推荐，覆盖指定年份的四季；每季最多250条候选
  *   node sync-db.js --oi-only    : 只解析缺失的 oi_msg（不重新拉 AniList 数据）
  *   node sync-db.js --anilist-only : 只同步 AniList 数据，不解析 oi_msg
  *   node sync-db.js --no-inline-oi : 跳过内联 OIAPI 解析（仅存 AniList 元数据）
- *   node sync-db.js --batch        : 自动分批（每3年一批），2010→2026春季（推荐全量方式）
+ *   node sync-db.js --batch        : 旧分批模式，范围固定为2010→2026春季；不覆盖之后的季度
  *   node sync-db.js --anilist-only --start-year 2014 --end-year 2017  : 指定年份范围
  *
  * 设计原则：

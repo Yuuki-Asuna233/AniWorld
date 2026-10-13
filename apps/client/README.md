@@ -18,7 +18,7 @@ AniWorld 的 Flutter 客户端，基于 [Predidit/Kazumi](https://github.com/Pre
 
 ## 安装与连接
 
-安装部署者提供的 **AniWorld** 安装包。上游 Kazumi 的 Releases、F-Droid、Flathub 等渠道不提供本项目的安装包。
+下载 [Android APK](https://github.com/Yuuki-Asuna233/AniWorld/releases/tag/android-v2.2.10) 或 [Windows ZIP](https://github.com/Yuuki-Asuna233/AniWorld/releases/tag/windows-v2.2.10)。先部署并启动自己的 AniWorld 服务端，再按 Release 页的步骤连接。上游 Kazumi 的 Releases、F-Droid、Flathub 等渠道不提供本项目的安装包。
 
 Windows 将 ZIP 完整解压到可写目录后运行；更新时使用完整的新包，不要只替换 exe。
 
