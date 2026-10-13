@@ -44,7 +44,7 @@ AniWorld 将网页、Node.js API、白羽 Agent 与基于 [Kazumi](https://githu
 
 ## 使用入口
 
-源码仓库：[Yuuki-Asuna233/AniWorld](https://github.com/Yuuki-Asuna233/AniWorld)。首次公开发布仅提供源码，尚未发布公共 APK / ZIP；后续公开安装包应由此源码重新构建，并使用自建服务配置。
+安装包需要自行构建，使用前请配置自己的服务端地址。
 
 网页访问部署者提供的服务地址；客户端安装部署者提供的 AniWorld APK 或 Windows ZIP，并在设置中填写可访问的服务端地址。访问门禁密码与账户登录密码是两套机制。
 
@@ -56,7 +56,7 @@ AniWorld 将网页、Node.js API、白羽 Agent 与基于 [Kazumi](https://githu
 
 从未使用过 AniWorld 的用户，请按 [从零部署到首次播放](docs/getting-started.md) 操作：完整源码 → 生成服务配置 → 初始化目录 → 手机连通检查 → 生成自己的签名 → 构建 APK → 选择播放源。
 
-公开版客户端内置 **AGE、DM84、enlie** 三个规则，视频由客户端解析和播放；站内目录与这些站点是否收录作品是两回事。服务端不要求配置内置播放源账号。白羽发起播放也通过客户端选源面板。
+客户端支持 **AGE、DM84、enlie** 三个播放源，可在番剧详情页选择。
 
 ## 启动服务端
 
