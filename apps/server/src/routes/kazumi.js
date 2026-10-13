@@ -1,4 +1,3 @@
-const { buildPureSearchResults, getAnimeDetails } = require('../services/catalogue');
 // Kazumi-compatible API routes
 // Serves anime metadata from local database in Bangumi API format
 // so the Flutter Kazumi/AniWorld app can use our backend instead of bangumi.tv
@@ -11,7 +10,6 @@ const { getCurrentSeasonInfo, hkDateParts, hkWeekday } = require('../utils/date'
 const { buildAiringSchedule } = require('../services/sync');
 const { resolveAnimeMetadata } = require('../services/anime-identity');
 const httpFetch = require('../services/http');
-const { cycaniPlayUrl } = require('../services/cycani-bridge');
 
 // --------------- helpers ---------------
 
@@ -658,23 +656,6 @@ function wrapCalendarItem(meta) {
 
 // --------------- routes ---------------
 
-function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function absoluteUrl(req, pathOrUrl) {
-  const value = String(pathOrUrl || '');
-  if (!value) return '';
-  if (/^https?:\/\//i.test(value)) return value;
-  const proto = req.protocol || 'http';
-  return `${proto}://${req.get('host')}${value.startsWith('/') ? value : '/' + value}`;
-}
-
 function mountKazumiRoutes(app, { database, httpFetch, cache }) {
   require('./catalog-search').mountCatalogSearchRoutes(app, { database });
   const router = express.Router();
@@ -1298,85 +1279,6 @@ function mountKazumiRoutes(app, { database, httpFetch, cache }) {
   router.get('/v0/me', unavailableCollection);
   router.get('/v0/users/:username/collections', unavailableCollection);
   router.post('/v0/users/-/collections/:id', unavailableCollection);
-
-  // ===== 17. AniWorld source bridge for Kazumi plugin =====
-  // Return minimal HTML because Kazumi's original source rule system is XPath
-  // + WebView based. This keeps the open-source UI/player untouched.
-  router.get('/source/search', async (req, res) => {
-    try {
-      const keyword = String(req.query.keyword || '').trim();
-      if (!keyword) return res.type('html').send('<main></main>');
-      const data = await buildPureSearchResults(keyword, { database, httpFetch });
-      const results = Array.isArray(data.results) ? data.results : [];
-      const items = results.map((item, idx) => {
-        const title = item.title || item.name || item.oiMsg || keyword;
-        const msg = item.oiMsg || title;
-        const n = item.oiIndex || idx + 1;
-        const href = `/kazumi/source/detail?msg=${encodeURIComponent(msg)}&n=${encodeURIComponent(n)}`;
-        return `<div class="search-item"><a class="name" href="${href}">${escapeHtml(title)}</a></div>`;
-      }).join('');
-      res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"></head><body><main>${items}</main></body></html>`);
-    } catch (e) {
-      console.error('[kazumi] source search error:', e.message);
-      res.type('html').send('<main></main>');
-    }
-  });
-
-  router.get('/source/detail', async (req, res) => {
-    try {
-      const msg = String(req.query.msg || '').trim();
-      const n = String(req.query.n || '1').trim();
-      if (!msg) return res.status(400).type('html').send('missing msg');
-      const data = await getAnimeDetails({ msg, n }, { database, httpFetch, cache });
-      const playlist = Array.isArray(data.playlist) && data.playlist.length
-        ? data.playlist
-        : Array.from(
-            { length: Math.max(1, parseInt(data.episodes, 10) || 1) },
-            (_, i) => `第${String(i + 1).padStart(2, '0')}集`
-          );
-      const links = playlist.map((name, idx) => {
-        const j = idx + 1;
-        const href = `/kazumi/source/play-page?msg=${encodeURIComponent(data.name || msg)}&n=${encodeURIComponent(data.resolved_n || n)}&j=${j}`;
-        return `<a class="episode" href="${href}">${escapeHtml(name || `第${j}集`)}</a>`;
-      }).join('');
-      res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"></head><body><div class="road">${links}</div></body></html>`);
-    } catch (e) {
-      console.error('[kazumi] source detail error:', e.message);
-      res.status(500).type('html').send('detail failed');
-    }
-  });
-
-  router.get('/source/play-page', async (req, res) => {
-    try {
-      const msg = String(req.query.msg || '').trim();
-      const n = String(req.query.n || '1').trim();
-      const j = String(req.query.j || '1').trim();
-      if (!msg) return res.status(400).type('html').send('missing msg');
-      // Only the AniWorld plugin bridge uses this resolver. DM84 remains an
-      // external plugin and never enters this route.
-      const cycaniUrl = await cycaniPlayUrl(msg, j, httpFetch).catch(() => null);
-      const data = { play_url: cycaniUrl || '' };
-      const videoUrl = absoluteUrl(req, data.play_url || data.proxy_url || '');
-      if (!videoUrl) return res.status(404).type('html').send('video not found');
-      res.type('html').send(`<!doctype html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="margin:0;background:#000">
-  <video id="aniworld-video" controls autoplay playsinline webkit-playsinline preload="auto" src="${escapeHtml(videoUrl)}" style="width:100vw;height:100vh;background:#000"></video>
-  <script>
-    window.ANIWORLD_VIDEO_URL = ${JSON.stringify(videoUrl).replace(/</g, '\\u003c')};
-    const v = document.getElementById('aniworld-video');
-    v.src = window.ANIWORLD_VIDEO_URL;
-    v.load();
-    setTimeout(() => v.play().catch(() => {}), 100);
-  </script>
-</body>
-</html>`);
-    } catch (e) {
-      console.error('[kazumi] source play-page error:', e.message);
-      res.status(500).type('html').send('play failed');
-    }
-  });
 
   app.use('/kazumi', router);
   console.log('[kazumi] Routes mounted: /kazumi/v0/* and /kazumi/p1/* and /kazumi/v1/*');

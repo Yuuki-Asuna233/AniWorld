@@ -22,7 +22,7 @@ AniWorld 将网页、Node.js API、白羽 Agent 与基于 [Kazumi](https://githu
 
 | 入口 | 当前仓库的支持范围 |
 |---|---|
-| Web | 服务端提供网页与 API |
+| Web | 目录、账户、白羽与 API；观看请使用客户端选源 |
 | Android | Flutter 客户端，发布脚本构建 arm64 APK |
 | Windows | Flutter 桌面客户端，发布脚本生成完整 ZIP |
 | 其他平台 | 保留部分上游工程文件，尚未作为本项目的正式发布目标 |
@@ -52,16 +52,24 @@ AniWorld 将网页、Node.js API、白羽 Agent 与基于 [Kazumi](https://githu
 
 本仓库提供自行构建和发布流程，参见 [客户端说明](apps/client/README.md)。服务端更新接口为 `/kazumi/v1/app/latest?platform=android` 或 `platform=windows`，安装包放在部署者配置的发布目录中。
 
+## 第一次部署与生成 APK
+
+从未使用过 AniWorld 的用户，请按 [从零部署到首次播放](docs/getting-started.md) 操作：完整源码 → 生成服务配置 → 初始化目录 → 手机连通检查 → 生成自己的签名 → 构建 APK → 选择播放源。
+
+公开版客户端内置 **AGE、DM84、enlie** 三个规则，视频由客户端解析和播放；站内目录与这些站点是否收录作品是两回事。服务端不要求配置内置播放源账号。白羽发起播放也通过客户端选源面板。
+
 ## 启动服务端
 
 需要 Node.js **20.9+** 和 npm。在仓库根目录执行：
 
 ```powershell
+git clone https://github.com/Yuuki-Asuna233/AniWorld.git
+cd AniWorld
 npm ci
-Copy-Item .env.example .env
+npm run setup:env
 ```
 
-编辑 `.env`，先配置下列必填项；示例描述需要替换为实际值：
+首次运行 `setup:env` 会生成私有 `.env` 和符合下列要求的随机值；已有配置不会覆盖。打开 `.env` 查看自己的门禁密码。手动配置时遵守：
 
 | 配置 | 要求 |
 |---|---|
@@ -77,7 +85,7 @@ npm start
 
 LLM、Embedding、SMTP、网页搜索与弹幕凭据为按功能选配；不配置模型仍可使用基础页面，但白羽不会自动替代模型执行完整对话。
 
-完整配置、首次导入、RAG 建索引、构建与生产部署见 [开发与部署指南](docs/development.md)。Linux 复制模板可使用 `cp .env.example .env`。
+完整配置、首次导入、RAG 建索引、构建与生产部署见 [开发与部署指南](docs/development.md)。Windows 与 Linux 均可用 `npm run setup:env` 创建首次配置。
 
 ## 系统架构
 
@@ -88,7 +96,7 @@ flowchart LR
     APP --> PLAYER["定制 media_kit / libmpv"]
     PLAYER --> MEDIA["播放源 / 按源需求使用代理"]
     API --> DB[("SQLite · sql.js")]
-    API --> META["元数据 / 播放解析 / 弹幕服务"]
+    API --> META["元数据 / 可选弹幕服务"]
     API --> AGENT["白羽 · baiyu_agent"]
     AGENT --> MODEL["LLM / Embedding"]
     AGENT --> DB
@@ -98,7 +106,7 @@ flowchart LR
 | 部分 | 实现与职责 |
 |---|---|
 | Web | 原生 HTML / CSS / JavaScript，消费 API 与 Agent 流式事件 |
-| 服务端 | Express 5、CommonJS，负责访问控制、账户、目录、解析与持久化 |
+| 服务端 | Express 5、CommonJS，负责访问控制、账户、目录与持久化；客户端规则负责播放解析 |
 | 数据库 | `sql.js` SQLite、标题 FTS、RAG 分块与 Float32 向量 |
 | Agent | 模型原生 Tool Calling、本地工具契约、按需 Skill、上下文预算与记忆 |
 | 客户端 | Flutter 3.44.3、MobX、Hive、仓库内播放器依赖 |
@@ -162,7 +170,7 @@ package-lock.json      npm 解析得到的依赖锁定记录
 
 **客户端视频都经过服务器代理吗？**
 
-不一定。常规直连播放地址由客户端播放器请求，解析请求经过 API 不等于视频流经过 API；需要反盗链、清单改写或其他适配的源可能使用代理。排查带宽应查看最终播放地址和实际请求链路。
+公开版三种规则由客户端查询站点并解析，本地播放器直接加载媒体，通常不占用自建 API 的视频代理带宽。规则站点自身可能还有解析或媒体中转；排查时查看最终媒体地址与请求链路。
 
 **缓存进度停住，就一定是播放器问题吗？**
 

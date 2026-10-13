@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "AniWorld web, API, agent and Flutter client monorepo",
   "main": "apps/server/server.js",
-  "engines": { "node": ">=20.9.0" },
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "start": "node apps/server/server.js",
     "sync": "node scripts/data/sync-db.js",
@@ -29,7 +31,8 @@
     "pc:install": "cd apps/client && flutter pub get",
     "pc:run": "cd apps/client && flutter run -d windows",
     "pc:build:windows": "cd apps/client && flutter build windows --release",
-    "pc:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release/build-windows-release.ps1"
+    "pc:release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release/build-windows-release.ps1",
+    "setup:env": "node scripts/setup-env.js"
   },
   "keywords": [],
   "author": "",

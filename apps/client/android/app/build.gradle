@@ -24,16 +24,14 @@ if (flutterVersionName == null) {
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
-if (!keystorePropertiesFile.exists()) {
-    throw new GradleException('Missing android/key.properties; release signing is required.')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader('UTF-8') { keystoreProperties.load(it) }
 }
-keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 
 android {
     namespace "com.aniworld.kazumi"
     compileSdk flutter.compileSdkVersion
-    // Pin ndk version to 21.3.6528147 to fix android build warning
-    // The build warning throws by gradle plugin, when the ndk is older than gradle plugin required version
+    // Keep the native toolchain aligned with the vendored player packages.
     ndkVersion "28.2.13676358"
 
     compileOptions {
@@ -62,10 +60,12 @@ android {
 
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
+            if (keystorePropertiesFile.exists()) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
         }
     }
 
@@ -73,9 +73,19 @@ android {
         release {
             // Keep one stable signing certificate so installed APKs can be
             // upgraded in place. Never fall back to an auto-generated key.
-            signingConfig signingConfigs.release
+            if (keystorePropertiesFile.exists()) { signingConfig signingConfigs.release }
             minifyEnabled true
             shrinkResources true
+        }
+    }
+}
+
+// Debug builds use the standard debug key; release builds always require an explicit key.
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.path.startsWith(':app:') && it.name.toLowerCase().contains('release') }) {
+        def required = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+        if (!keystorePropertiesFile.exists() || required.any { !keystoreProperties[it] }) {
+            throw new GradleException('Release signing is missing. Follow docs/getting-started.md to create android/key.properties.')
         }
     }
 }

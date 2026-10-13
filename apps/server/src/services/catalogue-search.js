@@ -83,9 +83,6 @@ async function buildMergedSearchResults(q, { database, httpFetch }) {
   // position.
   enrichSearchResultsWithAniListMeta(oiResults, database);
 
-  // 纯 OIAPI 模式已在上方提前返回（现由 CYCANI 驱动），此处的合并逻辑
-  // 仅服务于非 pure 调用方。
-
   let dbSearchResults = [];
   try {
     dbSearchResults = database.searchAnimeMetaByTitle(q, 20, { strict: true });
@@ -144,4 +141,10 @@ async function buildMergedSearchResults(q, { database, httpFetch }) {
   return { results: filtered.slice(0, 30), total: filtered.length, degraded };
 }
 
-module.exports = { buildMergedSearchResults };
+// Preserve the public search response contract without coupling metadata to playback.
+async function buildPureSearchResults(q, dependencies) {
+  const data = await buildMergedSearchResults(q, dependencies);
+  return { ...data, pure: true, source: data.results.length ? data.results[0].source : 'none' };
+}
+
+module.exports = { buildMergedSearchResults, buildPureSearchResults };

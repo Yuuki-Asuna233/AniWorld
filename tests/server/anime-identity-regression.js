@@ -224,32 +224,6 @@ async function runRouteRegression() {
     if (parsed.hostname === 'api.bgm.tv') {
       throw new Error('Detail route must not request Bangumi presentation data');
     }
-    // The search box resolves through CYCANI's /videos/search. Emulate that
-    // envelope for the search call only: the playback bridge looks a title up
-    // without a page_size and must keep falling through to the OIAPI stubs.
-    if (parsed.hostname === 'www.cycani.org' && parsed.searchParams.has('page_size')) {
-      const cycaniRow = (videoId, title, year, total) => ({
-        video_id: videoId,
-        title,
-        cover_url: 'https://example.invalid/' + videoId + '.jpg',
-        remarks: '01|周三22:00后',
-        year,
-        total
-      });
-      const query = parsed.searchParams.get('q') || '';
-      let list = [];
-      if (query === '从零开始的异世界生活') {
-        list = [
-          cycaniRow(4001, 'Re：从零开始的异世界生活 第四季 夺还篇', '2026', 8),
-          cycaniRow(4002, 'Re：从零开始的异世界生活 第四季 丧失篇', '2026', 11)
-        ];
-      } else if (query === 'Re：从零开始的异世界生活 第三季 反击篇') {
-        list = [cycaniRow(4003, query, '2024', 16)];
-      } else if (query === '寒蝉鸣泣之时') {
-        list = [cycaniRow(4004, query, '2006', 26)];
-      }
-      return { status: 200, data: { code: 0, data: { list } } };
-    }
     const requestedTitle = parsed.searchParams.get('msg');
     if (requestedTitle === '从零开始的异世界生活') {
       return {

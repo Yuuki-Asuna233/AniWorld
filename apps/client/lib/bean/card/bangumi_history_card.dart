@@ -102,17 +102,7 @@ Future<bool> _openOnlineHistoryPlayback(
       ? historyItem.bangumiItem.name
       : historyItem.bangumiItem.nameCn;
 
-  // AniWorld is a built-in OI source, not an installed Kazumi plugin. OI roads
-  // can be rebuilt from the subject even for legacy entries without lastSrc.
-  if (isAniWorldSource) {
-    videoPageController.bangumiItem = historyItem.bangumiItem;
-    videoPageController.title = historyTitle;
-    videoPageController.src =
-        historyItem.lastSrc.isNotEmpty ? historyItem.lastSrc : historyTitle;
-    videoPageController.requestHistoryResume();
-    videoPageController.beginQueryRoads('AniWorld', 'AniWorld');
-    return true;
-  }
+  if (isAniWorldSource) return false;
 
   if (historyItem.lastSrc.isEmpty) return false;
   Plugin? targetPlugin;

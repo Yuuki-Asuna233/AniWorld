@@ -334,9 +334,7 @@ abstract class _VideoPageController with Store {
       _playbackHistoryIdentity;
 
   bool get isAniWorldPlayback => roadList.any(
-        (road) => road.data.any((url) =>
-            url.startsWith('aniworld://cycani-play') ||
-            url.startsWith('aniworld://oi-play')),
+        (road) => road.data.any((url) => url.startsWith('aniworld://')),
       );
 
   String get activePluginName => isOfflineMode
@@ -487,10 +485,9 @@ abstract class _VideoPageController with Store {
         final episode = _resolveOnlineEpisode(index, road: road);
         if (episode == null) continue;
         final uri = Uri.tryParse(episode.pageUrl);
-        final structuredNumber =
-            uri?.scheme == 'aniworld' && uri?.host == 'cycani-play'
-                ? int.tryParse(uri!.queryParameters['j'] ?? '')
-                : null;
+        final structuredNumber = uri?.scheme == 'aniworld'
+            ? int.tryParse(uri!.queryParameters['j'] ?? '')
+            : null;
         if ((structuredNumber ?? episode.sortNumber) == number) {
           return VideoEpisodeSelection(episode: index, road: road);
         }
@@ -625,8 +622,7 @@ abstract class _VideoPageController with Store {
       road: resolvedEpisode.roadIndex,
     );
     commentsEpisode = commentEpisodeForSelection(selectedEpisode);
-    if (resolvedEpisode.pageUrl.startsWith('aniworld://cycani-play') ||
-        resolvedEpisode.pageUrl.startsWith('aniworld://oi-play')) {
+    if (resolvedEpisode.pageUrl.startsWith('aniworld://')) {
       await _resolveWithAniWorldOi(
         resolvedEpisode,
         offset,
@@ -692,6 +688,11 @@ abstract class _VideoPageController with Store {
       return;
     }
 
+    if (source.isEmpty || source.toLowerCase() == 'aniworld') {
+      KazumiDialog.showToast(message: '房主使用的源不可用，请房主选择 AGE、DM84 或 enlie');
+      return;
+    }
+
     if (id == bangumiItem.id &&
         (source.isEmpty ||
             source.toLowerCase() == activePluginName.toLowerCase())) {
@@ -714,26 +715,16 @@ abstract class _VideoPageController with Store {
     if (id == bangumiItem.id &&
         source.isNotEmpty &&
         source.toLowerCase() != activePluginName.toLowerCase()) {
-      if (source.toLowerCase() == 'aniworld') {
-        src = 'AniWorld';
-        currentPlugin = pluginsController.pluginList.firstWhere(
-          (plugin) => plugin.name.toLowerCase() == 'aniworld',
-          orElse: () => throw StateError('找不到 AniWorld 播放源'),
-        );
-        beginQueryRoads('AniWorld', 'AniWorld');
-      } else {
-        final plugin = pluginsController.pluginList.cast<Plugin?>().firstWhere(
-              (item) => item?.name.toLowerCase() == source.toLowerCase(),
-              orElse: () => null,
-            );
-        if (plugin == null) {
-          KazumiDialog.showToast(message: '找不到房主使用的播放源：$source');
-          return;
-        }
-        currentPlugin = plugin;
-        src = plugin.baseUrl;
-        beginQueryRoads(plugin.baseUrl, plugin.name);
+      final plugin = pluginsController.pluginList.cast<Plugin?>().firstWhere(
+          (item) => item?.name.toLowerCase() == source.toLowerCase(),
+          orElse: () => null);
+      if (plugin == null) {
+        KazumiDialog.showToast(message: '找不到房主使用的播放源：$source');
+        return;
       }
+      currentPlugin = plugin;
+      src = plugin.baseUrl;
+      beginQueryRoads(plugin.baseUrl, plugin.name);
       try {
         await waitForPendingRoadQuery();
         if (!current()) return;
@@ -785,32 +776,19 @@ abstract class _VideoPageController with Store {
     final next = VideoPageController();
     next.bangumiItem = target;
     next.title = target.nameCn.isNotEmpty ? target.nameCn : target.name;
-    next.src = source.isEmpty ? 'AniWorld' : source;
-    if (source.isEmpty || source.toLowerCase() == 'aniworld') {
-      next.currentPlugin = pluginsController.pluginList.firstWhere(
-        (item) => item.name.toLowerCase() == 'aniworld',
-        orElse: () => throw StateError('找不到 AniWorld 播放源'),
-      );
-    } else {
-      final plugin = pluginsController.pluginList.cast<Plugin?>().firstWhere(
-            (item) => item?.name.toLowerCase() == source.toLowerCase(),
-            orElse: () => null,
-          );
-      if (plugin == null) {
-        KazumiDialog.showToast(message: '找不到房主使用的播放源：$source');
-        return;
-      }
-      next.currentPlugin = plugin;
+    next.src = source;
+    final plugin = pluginsController.pluginList.cast<Plugin?>().firstWhere(
+        (item) => item?.name.toLowerCase() == source.toLowerCase(),
+        orElse: () => null);
+    if (plugin == null) {
+      KazumiDialog.showToast(message: '找不到房主使用的播放源：$source');
+      return;
     }
+    next.currentPlugin = plugin;
     next.syncPlayInitialEpisode = episode;
     next.syncPlayInitialFileName = fileName;
     next.resetEpisodeState(episode: episode, road: 0);
-    next.beginQueryRoads(
-      source.toLowerCase() == 'aniworld' || source.isEmpty
-          ? 'AniWorld'
-          : next.currentPlugin.baseUrl,
-      source.isEmpty ? 'AniWorld' : source,
-    );
+    next.beginQueryRoads(next.currentPlugin.baseUrl, source);
     _playbackSessions.cancel();
     playerController.playback.cancelSession();
     playerController.syncplay.detach();
@@ -1267,20 +1245,26 @@ abstract class _VideoPageController with Store {
     }
 
     roadList.clear();
-    if (pluginName == 'AniWorld' || url == 'AniWorld') {
-      final roads = await AniWorldApi.getCycaniRoads(bangumiItem);
-      if (generation != _roadQueryGeneration) return;
-      roadList.addAll(roads);
-      KazumiLogger()
-          .i('VideoPageController: CYCANI road list length ${roadList.length}');
-      return;
+    if (pluginName.toLowerCase() == 'aniworld' || url == 'AniWorld') {
+      throw StateError('公开版已移除内置播放源，请返回详情页重新选源');
     }
     final PluginsController pluginsController =
         Modular.get<PluginsController>();
     for (Plugin plugin in pluginsController.pluginList) {
       if (plugin.name == pluginName) {
+        var detailUrl = url;
+        if (url == plugin.baseUrl) {
+          final search = await plugin.queryBangumi(title, shouldRethrow: true);
+          if (generation != _roadQueryGeneration) return;
+          final exact = search.data
+              .where((item) => item.name.trim() == title.trim())
+              .toList();
+          if (exact.length != 1) throw StateError('无法唯一匹配房主作品，请在详情页重新选源');
+          detailUrl = exact.single.src;
+          src = detailUrl;
+        }
         final roads =
-            await plugin.querychapterRoads(url, cancelToken: cancelToken);
+            await plugin.querychapterRoads(detailUrl, cancelToken: cancelToken);
         if (generation != _roadQueryGeneration) return;
         _normalizeDm84RoadOrder(plugin.name, roads);
         roadList.addAll(roads);

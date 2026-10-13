@@ -1,7 +1,6 @@
 const { findAlias } = require('../../anime-titles');
 const { dbMetaToResult, safeJsonParse } = require('../utils/db-helpers');
 const { getCache, setCache } = require('./cache');
-const { cycaniSearch, cycaniDetails } = require('./cycani-bridge');
 const { OI_BASE, generateOiMsgCandidates, selectBestOiResult, resolveCurrentOiSelection } = require('./oi-helpers');
 const { resolveAnimeMetadata } = require('./anime-identity');
 const { resolveAnimeEditionPresentation, statusFromOiLabel } = require('./anime-presentation');
@@ -35,8 +34,7 @@ function enrichSearchResultsWithAniListMeta(results, database) {
         }
         result.seasonYear = metadata.year;
         result.startDate = metadata.startDate;
-        // Prefer a real count on either side; CYCANI often knows the announced
-        // total while AniList still reports "?" for a season that just began.
+        // Preserve a known episode count when local metadata is incomplete.
         if (Number(metadata.episodes) > 0 || !(Number(result.episodes) > 0)) {
           result.episodes = metadata.episodes;
         }
@@ -54,99 +52,6 @@ function enrichSearchResultsWithAniListMeta(results, database) {
     } catch (_) {}
   }
   return results;
-}
-
-/**
- * Build the result list for the website/app search box (`pure=1`).
- *
- * CYCANI is the playback source of truth and is also the freshest catalogue,
- * so it is queried first; the AniList-synced local table is the fallback for
- * titles CYCANI has not ingested. OIAPI is deliberately not consulted here —
- * its catalogue lags a season behind, which made new seasons unsearchable.
- *
- * Results keep the historical field names (`source: 'oiapi'`, `oiMsg`,
- * `oiIndex`) because both clients branch on them: the web player uses
- * `source === 'oiapi' && oiIndex` to open the detail page, and the app stores
- * the pair as persisted playback identity. `oiMsg` holds a title that CYCANI
- * can resolve, so playback continues to work unchanged.
- */
-async function buildPureSearchResults(q, { database, httpFetch }) {
-  const results = [];
-  const seen = new Set();
-  const push = item => {
-    const key = String(item.title || '').trim().toLowerCase();
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    results.push(item);
-  };
-
-  // Query the alias and the raw text, the way the OIAPI path used to, so short
-  // or romanised searches ("RE0") still resolve.
-  const aliasedName = findAlias(q);
-  const terms = [...new Set([aliasedName || q, q])]
-    .filter(term => term && String(term).trim().length >= 2);
-
-  let degraded = false;
-  try {
-    const lists = await Promise.all(terms.map(term =>
-      cycaniSearch(term, httpFetch, { pageSize: 30, strict: true }).catch(() => { degraded = true; return []; })));
-    for (const list of lists) {
-      for (const item of list) {
-        push({
-          id: 'cycani_' + item.videoId,
-          title: item.title,
-          image: item.image,
-          ji: item.remarks,
-          year: item.year,
-          episodes: item.totalEpisodes || '?',
-          score: item.score || 0,
-          source: 'oiapi',
-          provider: 'cycani',
-          oiMsg: item.title,
-          oiIndex: 1,
-          oiResolved: true,
-          cycaniVideoId: item.videoId
-        });
-      }
-    }
-  } catch (_) { degraded = true; }
-
-  if (results.length === 0) {
-    try {
-      for (const row of database.searchAnimeMetaByTitle(q, 30, { strict: true })) {
-        const mapped = dbMetaToResult(row);
-        push({
-          id: mapped.id,
-          title: mapped.title,
-          image: mapped.image,
-          ji: '',
-          year: mapped.year,
-          episodes: mapped.episodes || '?',
-          score: mapped.score || 0,
-          source: 'oiapi',
-          provider: 'db',
-          oiMsg: mapped.oiMsg || mapped.title,
-          oiIndex: mapped.oiIndex || 1,
-          oiResolved: true,
-          romajiTitle: mapped.romajiTitle || '',
-          nativeTitle: mapped.nativeTitle || '',
-          genres: mapped.genres || [],
-          format: mapped.format || '',
-          seasonYear: mapped.seasonYear || ''
-        });
-      }
-    } catch (_) { degraded = true; }
-  }
-
-  enrichSearchResultsWithAniListMeta(results, database);
-
-  return {
-    results,
-    total: results.length,
-    pure: true,
-    degraded,
-    source: results.length > 0 ? results[0].provider : 'none'
-  };
 }
 
 async function getAnimeDetails({ msg, n }, { database, httpFetch, cache: cacheObj }) {
@@ -197,63 +102,13 @@ async function getAnimeDetails({ msg, n }, { database, httpFetch, cache: cacheOb
     return null;
   }
 
-  /**
-   * Resolve details through CYCANI and shape the result like an OIAPI
-   * response, so every field derived below (episode count, airing state,
-   * AniList metadata, rating) keeps working untouched.
-   *
-   * CYCANI's `remarks` uses the same "01|周六23:05后" / "即将放送" / "" forms
-   * that airing-reconcile.js and anime-presentation.js already parse.
-   */
-  async function cycaniDetailsResponse(title) {
-    try {
-      const details = await cycaniDetails(title, httpFetch);
-      if (!details || details.sections.length === 0) return null;
-      return {
-        status: 200,
-        data: {
-          code: 200,
-          data: {
-            name: details.resolvedTitle || details.title || title,
-            image: details.cover || '',
-            class: details.version || '',
-            ji: details.remarks || '',
-            year: details.year || '',
-            desc: details.description || '',
-            // AniList often has no announced episode count for a season that
-            // just started, while CYCANI already knows it. Carry it through so
-            // the page does not show "?".
-            cycaniTotalEpisodes: details.totalEpisodes || 0,
-            playlist: details.sections.map(section => ({
-              name: section.title,
-              j: section.episode,
-              sectionId: section.id
-            }))
-          }
-        }
-      };
-    } catch (_) {
-      return null;
-    }
-  }
-
-  // CYCANI is the playback source of truth and the freshest catalogue, so
-  // resolve through it before spending a round trip on OIAPI. OIAPI stays
-  // as the fallback for catalogue entries CYCANI has not ingested.
-  let r = await cycaniDetailsResponse(msg);
-
-  if (!isUsableOiDetailsResponse(r)) {
-    const selection = await resolveCurrentOiSelection(msg, numericN, httpFetch, 8000);
-    msg = selection.msg || msg;
-    numericN = selection.index;
-
-    r = await callOiDetails(msg, numericN);
-    if (!isUsableOiDetailsResponse(r)) {
-      r = await callOiDetails(msg, 1);
-      if (isUsableOiDetailsResponse(r)) {
-        numericN = 1;
-      }
-    }
+  const selection = await resolveCurrentOiSelection(msg, numericN, httpFetch, 8000);
+  msg = selection.msg || msg;
+  numericN = selection.index;
+  let r = await callOiDetails(msg, numericN);
+  if (!isUsableOiDetailsResponse(r) && numericN !== 1) {
+    r = await callOiDetails(msg, 1);
+    if (isUsableOiDetailsResponse(r)) numericN = 1;
   }
 
   if (!isUsableOiDetailsResponse(r)) {
@@ -299,13 +154,6 @@ async function getAnimeDetails({ msg, n }, { database, httpFetch, cache: cacheOb
       aniEpisodes = edition.episodes;
       episodeCountSource = 'edition_override';
     }
-    // Fall back to CYCANI's announced total when neither AniList nor an
-    // edition override knows the episode count (common for a season that
-    // has just started airing).
-    if ((!Number(aniEpisodes) || aniEpisodes === '?') && Number(d.cycaniTotalEpisodes) > 0) {
-      aniEpisodes = Number(d.cycaniTotalEpisodes);
-      episodeCountSource = 'cycani_total';
-    }
     aniStatus = edition?.status || statusFromOiLabel(d.ji) || aniStatus;
     const nextEpisode = Number(aniNextAiring?.episode) || 0;
     if (Number(aniEpisodes) > 0 && nextEpisode > Number(aniEpisodes)) {
@@ -338,8 +186,8 @@ async function getAnimeDetails({ msg, n }, { database, httpFetch, cache: cacheOb
     setCache(cacheObj, detailsCacheKey, response, 15 * 60 * 1000, { name: 'oi_details' });
     return response;
   } else {
-    throw Object.assign(new Error((r.data || {}).message || '未找到详情'), { status: 404 });
+    throw Object.assign(new Error((r?.data || {}).message || '未找到详情'), { status: 404 });
   }
 }
 
-module.exports = { buildPureSearchResults, enrichSearchResultsWithAniListMeta, getAnimeDetails };
+module.exports = { enrichSearchResultsWithAniListMeta, getAnimeDetails };

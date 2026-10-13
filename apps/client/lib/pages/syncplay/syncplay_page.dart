@@ -162,6 +162,12 @@ class _SyncPlayPageState extends State<SyncPlayPage> {
         session.currentFileName == fileName;
     final parsed = _parseFile(fileName);
     if (parsed == null) return;
+    if (parsed.source.isEmpty || parsed.source.toLowerCase() == 'aniworld') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('房主使用的源不可用，请房主选择 AGE、DM84 或 enlie')),
+      );
+      return;
+    }
     if (!current()) return;
     setState(() => _openingPlayback = true);
     try {
@@ -188,24 +194,18 @@ class _SyncPlayPageState extends State<SyncPlayPage> {
       final controller = VideoPageController();
       controller.bangumiItem = item;
       controller.title = item.nameCn.isNotEmpty ? item.nameCn : item.name;
-      controller.src = parsed.source.isEmpty ? 'AniWorld' : parsed.source;
-      if (parsed.source.isNotEmpty &&
-          parsed.source.toLowerCase() != 'aniworld') {
-        final plugin = Modular.get<PluginsController>().pluginList.firstWhere(
-              (item) => item.name.toLowerCase() == parsed.source.toLowerCase(),
-              orElse: () => throw StateError('找不到房主使用的播放源：${parsed.source}'),
-            );
-        controller.currentPlugin = plugin;
-      }
+      controller.src = parsed.source;
+      final plugins = Modular.get<PluginsController>();
+      await plugins.preparePlaybackSources();
+      if (!current()) return;
+      controller.currentPlugin = plugins.pluginList.firstWhere(
+          (item) => item.name.toLowerCase() == parsed.source.toLowerCase(),
+          orElse: () => throw StateError('找不到房主使用的播放源：${parsed.source}'));
       controller.syncPlayInitialEpisode = parsed.episode;
       controller.syncPlayInitialFileName = fileName;
       controller.resetEpisodeState(episode: parsed.episode, road: 0);
       controller.beginQueryRoads(
-        parsed.source.isEmpty || parsed.source.toLowerCase() == 'aniworld'
-            ? 'AniWorld'
-            : controller.currentPlugin.baseUrl,
-        parsed.source.isEmpty ? 'AniWorld' : parsed.source,
-      );
+          controller.currentPlugin.baseUrl, parsed.source);
       await Modular.to.pushNamed('/video/', arguments: controller);
     } catch (error) {
       if (mounted && current()) {

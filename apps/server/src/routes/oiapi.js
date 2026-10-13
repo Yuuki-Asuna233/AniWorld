@@ -1,5 +1,5 @@
-const { buildMergedSearchResults } = require('../services/catalogue-search');
-const { buildPureSearchResults, getAnimeDetails } = require('../services/catalogue');
+const { buildMergedSearchResults, buildPureSearchResults } = require('../services/catalogue-search');
+const { getAnimeDetails } = require('../services/catalogue');
 const { isAgentAdmin } = require('../services/agent-telemetry');
 // OIAPI routes: search, details, play, probe, sources, franchise, trending, newseason, classic,
 // today, calendar, rankings, browse, bridge, genres, meta
@@ -68,7 +68,7 @@ function fetchCategoryFromDbByTitles(database, titles, limit) {
  * list position.
  */
 function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAuth }) {
-  mountOiPlaybackRoutes(app, { httpFetch });
+  mountOiPlaybackRoutes(app);
 
   // ==================== Search ====================
   app.get('/api/oi/search', async (req, res) => {

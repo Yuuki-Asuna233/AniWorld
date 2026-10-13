@@ -6,6 +6,10 @@ import 'package:dio/dio.dart';
 import 'package:kazumi/bean/dialog/dialog_helper.dart';
 import 'package:kazumi/bean/card/network_img_layer.dart';
 import 'package:kazumi/request/apis/aniworld_api.dart';
+import 'package:kazumi/pages/info/info_controller.dart';
+import 'package:kazumi/pages/info/source_sheet.dart';
+import 'package:kazumi/plugins/plugins_controller.dart';
+import 'package:kazumi/bean/dialog/adaptive_bottom_sheet.dart';
 import 'package:kazumi/pages/video/video_controller.dart';
 import 'package:kazumi/pages/collect/collect_controller.dart';
 import 'package:kazumi/pages/history/history_controller.dart';
@@ -735,18 +739,24 @@ class _ShirahaPageState extends State<ShirahaPage> {
         .firstWhere((action) => action?['type'] == 'play', orElse: () => null);
     final playCard = playAction == null ? null : targetCard(playAction);
     if (playAction != null && playCard != null) {
-      final controller = VideoPageController();
-      final item = playCard.toBangumiItem();
-      controller.bangumiItem = item;
-      controller.title = item.nameCn.isNotEmpty ? item.nameCn : item.name;
-      controller.src = 'AniWorld';
-      controller.requestPlaybackStart(
-          episode: playAction['episodeExplicit'] == true
+      await Modular.get<PluginsController>().preparePlaybackSources();
+      if (!mounted || !account.isCurrent || isCurrentRequest?.call() == false) {
+        return;
+      }
+      final info = InfoController()..bangumiItem = playCard.toBangumiItem();
+      await showAdaptiveBottomSheet<void>(
+        context: context,
+        maxHeightFactor: 0.86,
+        compactLandscapeMaxHeightFactor: 0.95,
+        builder: (_) => SourceSheet(
+          infoController: info,
+          explicitStart: true,
+          initialEpisode: playAction['episodeExplicit'] == true
               ? int.tryParse('${playAction['episode']}')
               : null,
-          resume: playAction['resume'] == true);
-      controller.beginQueryRoads('AniWorld', 'AniWorld');
-      await Modular.to.pushNamed('/video/', arguments: controller);
+          resume: playAction['resume'] == true,
+        ),
+      );
       return;
     }
     for (final action in result.actions) {

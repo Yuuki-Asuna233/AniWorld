@@ -1,6 +1,6 @@
 # 开发、配置与部署
 
-[项目首页](../README.md) · [客户端](../apps/client/README.md) · [Agent](../baiyu_agent/README.md)
+[首次部署与 APK](getting-started.md) · [项目首页](../README.md) · [客户端](../apps/client/README.md) · [Agent](../baiyu_agent/README.md)
 
 本文中的 Node 命令在仓库根目录执行。配置项和当前示例值以 [.env.example](../.env.example) 为准，本文解释其作用，避免维护另一份重复的完整参数清单。
 
@@ -10,10 +10,10 @@
 
 ```powershell
 npm ci
-Copy-Item .env.example .env
+npm run setup:env
 ```
 
-Linux 使用 `cp .env.example .env`。已经有私有配置时不要覆盖现有 `.env`。
+`setup:env` 在 Windows / Linux 均可用，会生成私有 `.env` 和独立随机密钥，已有文件时拒绝覆盖。手动配置可参考 `.env.example`。
 
 `npm ci` 按锁文件安装；如果 `package.json` 与锁文件不一致会报错，并且会重建 `node_modules`。有意变更依赖时使用 `npm install 包名`、`npm uninstall 包名` 或 `npm update`，检查并提交对应清单与锁文件变化。安装行为参考 [npm ci 文档](https://docs.npmjs.com/cli/v11/commands/npm-ci/)。
 
@@ -44,12 +44,15 @@ Node 依赖中的 Sharp 用于服务端图像处理，例如头像解码和转�
 | 网页检索 | `WEB_SEARCH_PROVIDER`、`TAVILY_API_KEY` | 外部网页检索不可用 |
 | 邮箱验证 | `SMTP_HOST/PORT/USER/PASS` | 当前服务端会将验证码写到控制台，不适合作为正式邮件投递方案 |
 | 弹幕服务 | `DANDANAPI_APPID/KEY` | 依赖该服务的弹幕能力不可用 |
-| 特定播放源桥接 | `CYCANI_USERNAME/PASSWORD/AUTH_TOKEN` | 是否需要凭据取决于源站和桥接流程 |
 | 客户端更新 | `APP_RELEASE_DIR`、`APP_UPDATE_NOTES`、`APP_UPDATE_RELEASE_URL` | 没有有效发布包时不提供相应新版安装包 |
 
 聊天模型接口需要支持原生 `tool_calls`。严格函数 Schema 和强制工具选择分别由 `LLM_TOOL_STRICT`、`LLM_FORCE_TOOL_CHOICE` 控制，仅在网关确实支持时启用。仅声明 OpenAI-compatible 不代表支持所有这些行为。
 
 `LLM_MODEL` 填供应商实际接受的模型名，本文不固定生产模型。Embedding 和聊天模型是两条独立配置。
+
+## 客户端播放源
+
+公开版内置 AGE、DM84、enlie 三种规则，客户端直接查询对应站点并解析媒体。服务器不配置这些规则的播放账号；目录和详情使用 AniList / OIAPI 等元数据，与客户端源的收录和线路状态分别管理。已移除内置播放桥接，旧播放接口返回明确的移除提示。网页主要用于目录、账户和白羽，实际播放入口以 Android / Windows 客户端为准。
 
 ## 元数据同步与数据库
 
@@ -136,7 +139,7 @@ npm run app:release -- -Version 2.2.9
 npm run pc:release -- -Version 2.2.9
 ```
 
-发布脚本会同步设置构建版本与 `APP_VERSION`，并使用已有 Pub cache；Android 还校验既有签名。Windows 发布包包含完整运行资源。常规 `app:build:android` / `pc:build:windows` 仅调用 Flutter 构建，不等价于完整发布流程。
+发布脚本会同步设置构建版本与 `APP_VERSION`，默认在线准备依赖并发现标准缓存；Android 还校验自己的签名。完整首次签名和构建步骤见 [入门指南](getting-started.md)。Windows 发布包包含完整运行资源。常规 `app:build:android` / `pc:build:windows` 仅调用 Flutter 构建，不等价于完整发布流程。
 
 将 APK / ZIP 上传到服务端 `APP_RELEASE_DIR`，默认 `data/releases`；保留 `AniWorld_android_版本.apk`、`AniWorld_windows_版本.zip` 命名，再检查对应平台的更新接口。
 

@@ -912,7 +912,7 @@ async function loadDetails() {
       currentAniEpisodes = parseInt(d.episodes);
     }
 
-    updatePageProgress('正在渲染页面...', '即将开始播放', 85);
+    updatePageProgress('正在渲染页面...', '即将显示作品', 85);
     renderInfo(d);
     if (d.playlist && d.playlist.length > 0) {
       playlist = d.playlist;
@@ -1314,96 +1314,15 @@ function renderEpSelector(list, regularCount, hasSpecials) {
 
 function renderEpisodes(list, aniData) {
   document.getElementById('epSection').style.display = 'block';
-  document.getElementById('playerWrapper').style.display = 'flex';
-  episodeJMap = {}; // Reset j mapping for new playlist
-  allSources = []; // Reset sources
-
-  // Detect SP/OVA episodes vs regular episodes
-  let regularCount = 0;
-  if (currentAniEpisodes > 0) {
-    regularCount = currentAniEpisodes;
-  } else {
-    const spKeywords = /OVA|OAD|SP|OVA|特别篇|总集篇|Highlights?|Special|Omake|Picture Drama|Melhendre|Kanketsuhen/i;
-    let spIndices = [];
-    for (let i = 0; i < list.length; i++) {
-      const epStr = typeof list[i] === 'string' ? list[i] : (list[i].title || list[i].name || '');
-      if (spKeywords.test(epStr)) spIndices.push(i);
-    }
-    regularCount = spIndices.length > 0 ? list.length - spIndices.length : list.length;
-  }
-
-  const totalCount = list.length;
-  const hasSpecials = regularCount > 0 && totalCount > regularCount;
-  const status = aniData?.aniStatus || '';
-  const nextAiring = aniData?.aniNextAiring || null;
-
-  // Build episode title with status info
-  const titleEl = document.getElementById('epTitle');
-  if (titleEl) {
-    let titleText = '';
-    if (hasSpecials) {
-      titleText = '剧集（' + regularCount + '集正片 + ' + (totalCount - regularCount) + '特别篇）';
-    } else {
-      titleText = '剧集（' + totalCount + '集';
-      if (status === 'FINISHED') {
-        titleText += '全';
-      }
-      titleText += '）';
-    }
-    if (status === 'RELEASING' && nextAiring?.airingAt) {
-      const dd = new Date(nextAiring.airingAt * 1000);
-      const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-      const day = dayNames[dd.getDay()];
-      const hh = String(dd.getHours()).padStart(2, '0');
-      const mm = String(dd.getMinutes()).padStart(2, '0');
-      titleText += ' · 更新：' + day + ' ' + hh + ':' + mm;
-    }
-    titleEl.textContent = titleText;
-  }
-
+  document.getElementById('playerWrapper').style.display = 'none';
+  const title = document.getElementById('epTitle');
+  if (title) title.textContent = '客户端观看';
   const grid = document.getElementById('epGrid');
-  grid.innerHTML = list.map((ep, i) => {
-    const isSpecial = hasSpecials && i >= regularCount;
-    const label = typeof ep === 'string' ? ep : (ep.title || '第' + (i+1) + '集');
-
-    if (isSpecial) {
-      // Label SP episodes with their actual episode number in the title
-      const epNum = (i + 1);
-      // Try to detect if it's OVA instead of regular SP
-      const epStr = typeof ep === 'string' ? ep : (ep.title || '');
-      const isOva = /OVA|OAD|oad/i.test(epStr);
-      const badge = isOva ? 'OVA' : 'SP';
-      const displayLabel = badge + (i - regularCount + 1);
-      return '<button class="ep-btn ' + (isOva ? 'ova' : 'sp') + '" data-ep-index="' + i + '" id="epBtn' + i + '" onclick="playEp(' + i + ')" title="' + escapeHtml(label) + '（' + badge + '）">' + displayLabel + '</button>';
-    }
-
-    return '<button class="ep-btn" data-ep-index="' + i + '" id="epBtn' + i + '" onclick="playEp(' + i + ')">' + escapeHtml(label) + '</button>';
-  }).join('');
-
-  // Determine starting episode: honor resume params from history if present
-  // Match by numeric episode number (1-based), independent of ep.j format
-  let startEp = 0;
-  if (window._resumeEp) {
-    const targetIdx = list.findIndex((ep, i) => {
-      return window._resumeExactEpisode ? Number(getEpisodeJ(list, i)) === Number(window._resumeEp)
-        : String(i + 1) === window._resumeEp;
-    });
-    if (targetIdx >= 0) {
-      startEp = targetIdx;
-    } else {
-      showToast('历史集数暂不可用，请选择其他剧集');
-      renderEpSelector(list, regularCount, hasSpecials);
-      delete window._resumeEp;
-      delete window._resumeProgress;
-      delete window._resumePosition;
-      delete window._resumeExactEpisode;
-      return;
-    }
-  }
-  if (list.length > 0) playEp(startEp);
-  renderEpSelector(list, regularCount, hasSpecials);
+  grid.replaceChildren();
+  const notice = document.createElement('p');
+  notice.textContent = '请在 Android / Windows 客户端打开本作品，选择 AGE、DM84 或 enlie 播放。网页目录的剧集资料不代表这些源均已收录。';
+  grid.appendChild(notice);
 }
-
 
 // ===== 新番推荐（从更新日历随机抽取） =====
 async function loadRecommendations() {
@@ -1644,50 +1563,7 @@ async function switchSource(idx) {
   await setupVideo(source, session);
 }
 async function playEp(idx) {
-  if (idx < 0 || idx >= playlist.length) return;
-  const session = beginPlayback(idx), j = session.identity.episode;
-  allSources = [];
-  currentSourceIdx = 0;
-  showLoading('正在探测播放源...', '搜索可用线路', 10);
-  clearError();
-  document.querySelectorAll('[data-ep-index]').forEach(button => {
-    button.classList.toggle('on', Number(button.dataset.epIndex) === idx);
-  });
-  let best = null;
-  if (episodeJMap[idx] !== undefined) {
-    best = await tryPlayJ(episodeJMap[idx], 'auto', session);
-    if (!session.active()) return;
-  }
-  if (!best) {
-    const data = await fetchSources(j, session);
-    if (!session.active()) return;
-    if (data?.found && data.sources?.length) {
-      allSources = data.sources.filter(source => Number(source.j) === Number(j));
-      currentSourceIdx = Math.max(0, findPlayableSourceIndex(null, 0));
-      best = allSources[currentSourceIdx] || null;
-    }
-  }
-  if (!best) {
-    const results = await Promise.all(['1', '2', '3'].map(async type => {
-      const source = await tryPlayJ(j, type, session);
-      return source ? { ...source, type, j } : null;
-    }));
-    if (!session.active()) return;
-    allSources = results.filter(Boolean);
-    currentSourceIdx = Math.max(0, findPlayableSourceIndex(null, 0));
-    best = allSources[currentSourceIdx] || null;
-  }
-  if (!best) {
-    hideLoading();
-    showError('未找到该集的有效播放地址，请稍后重试或切换来源');
-    return;
-  }
-  if (!allSources.length) allSources = [best];
-  currentSourceJ = best.j || episodeJMap[idx] || j;
-  currentType = best.type || 'auto';
-  episodeJMap[idx] = currentSourceJ;
-  renderSources();
-  await setupVideo(best, session);
+  showToast('请在 Android / Windows 客户端选择播放源观看');
 }
 
 // Load franchise data (seasons, movies, OVAs)

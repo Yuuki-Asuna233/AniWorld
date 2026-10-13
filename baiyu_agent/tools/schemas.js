@@ -219,7 +219,7 @@ const TOOL_SCHEMAS = [
     type: 'function',
     function: {
       name: 'open_anime_playback',
-      description: '请求客户端进入目标作品并播放。episode 指定第几集并从头播放；resume=true 按历史继续观看，与 episode 互斥。两者省略时从第1集开始；播放当前这一集也必须明确传 episode。只表示动作已发出，不保证视频已加载成功。',
+      description: '请求客户端打开目标作品的选源面板，用户选择 AGE、DM84 或 enlie 后播放。episode 指定第几集并从头播放；resume=true 按历史继续观看，与 episode 互斥。两者省略时从第1集开始；播放当前这一集也必须明确传 episode。只表示动作已发出，不保证视频已加载成功。',
       parameters: {
         type: 'object',
         properties: { query: { type: 'string' },

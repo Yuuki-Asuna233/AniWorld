@@ -81,7 +81,7 @@ abstract class _PluginsController with Store {
     if (newPluginDirectory == null || oldPluginDirectory == null) {
       await init();
     } else {
-      await ensureBundledAniWorldPlugin();
+      await removeRetiredPlaybackSource();
       await ensureBundledPlugin('assets/plugins/DM84.json');
       await ensureBundledPlugin('assets/plugins/AGE.json');
       await ensureBundledPlugin('assets/plugins/enlie.json');
@@ -114,7 +114,7 @@ abstract class _PluginsController with Store {
     } else {
       KazumiLogger().w('Plugin: plugin directory does not exist');
     }
-    await ensureBundledAniWorldPlugin();
+    await removeRetiredPlaybackSource();
     await ensureBundledPlugin('assets/plugins/DM84.json');
     await ensureBundledPlugin('assets/plugins/AGE.json');
     await ensureBundledPlugin('assets/plugins/enlie.json');
@@ -150,29 +150,10 @@ abstract class _PluginsController with Store {
     }
   }
 
-  Future<void> ensureBundledAniWorldPlugin() async {
-    try {
-      const assetPath = 'assets/plugins/AniWorld.json';
-      final jsonString = await rootBundle.loadString(assetPath);
-      final bundled = Plugin.fromJson(jsonDecode(jsonString));
-      final index = pluginList.indexWhere((p) => p.name == bundled.name);
-      if (index < 0) {
-        pluginList.insert(0, bundled);
-        await savePlugins();
-        KazumiLogger().i('Plugin: bundled AniWorld plugin installed');
-        return;
-      }
-      if (pluginList[index].version != bundled.version ||
-          pluginList[index].baseUrl != bundled.baseUrl ||
-          pluginList[index].searchURL != bundled.searchURL) {
-        bundled.enabled = pluginList[index].enabled;
-        pluginList[index] = bundled;
-        await savePlugins();
-        KazumiLogger().i('Plugin: bundled AniWorld plugin updated');
-      }
-    } catch (e) {
-      KazumiLogger().w('Plugin: failed to ensure AniWorld plugin', error: e);
-    }
+  Future<void> removeRetiredPlaybackSource() async {
+    final count = pluginList.length;
+    pluginList.removeWhere((plugin) => plugin.name.toLowerCase() == 'aniworld');
+    if (pluginList.length != count) await savePlugins();
   }
 
   // Retrieves a list of JSON plugin file paths from the plugin directory

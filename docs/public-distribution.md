@@ -4,6 +4,8 @@
 
 可在 Flutter 构建时使用 `--dart-define=ANIWORLD_SERVER_URL=https://your-server.example` 指定默认地址。地址不是秘密；任何打进安装包的地址和凭据都应视为可被读取。发布脚本默认不注入此参数。
 
+从克隆到首次播放的步骤见 [入门指南](getting-started.md)。公开版仅内置 AGE、DM84、enlie 客户端播放规则，不依赖私人内置源账号。
+
 签名配置示例见 [key.properties.example](../apps/client/android/key.properties.example)，实际配置和 keystore 不应提交。
 
 ## 密钥与门禁

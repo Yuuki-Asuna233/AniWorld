@@ -3,20 +3,22 @@ param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
     [string]$Version,
     [switch]$SkipSymlinkCheck,
-    [switch]$NoZip
+    [switch]$NoZip,
+    [switch]$Offline,
+    [string]$ServerUrl
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $appRoot = Join-Path $projectRoot 'apps\client'
+. (Join-Path $PSScriptRoot 'release-environment.ps1')
+if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) { throw 'flutter not found. Add Flutter bin to PATH.' }
 
 # Keep large, disposable Windows build caches off the system drive. These are
 # process-local overrides, so running the release script does not change the
 # user's global Windows environment.
 $buildCacheRoot = if ($env:ANIWORLD_BUILD_CACHE) {
     [IO.Path]::GetFullPath($env:ANIWORLD_BUILD_CACHE)
-} elseif (Test-Path -LiteralPath 'D:\') {
-    'D:\AndroidDev\Caches\aniworld-windows'
 } else {
     Join-Path $env:LOCALAPPDATA 'AniWorld\BuildCache'
 }
@@ -27,17 +29,7 @@ $env:TEMP = $buildTemp
 $env:TMP = $buildTemp
 $env:NUGET_PACKAGES = $nugetCache
 
-$preferredPubCache = if ($env:ANIWORLD_PUB_CACHE) {
-    $env:ANIWORLD_PUB_CACHE
-} elseif (Test-Path -LiteralPath 'D:\AndroidDev\PubCache') {
-    'D:\AndroidDev\PubCache'
-} else {
-    $env:PUB_CACHE
-}
-if (-not $preferredPubCache -or -not (Test-Path -LiteralPath $preferredPubCache)) {
-    throw 'A local Pub cache was not found. Set ANIWORLD_PUB_CACHE first.'
-}
-$env:PUB_CACHE = [IO.Path]::GetFullPath($preferredPubCache)
+Initialize-ReleasePubCache -Offline:$Offline
 Write-Host "Build temp: $buildTemp"
 Write-Host "NuGet cache: $nugetCache"
 Write-Host "Pub cache: $env:PUB_CACHE"
@@ -82,14 +74,16 @@ Continuing anyway and letting Flutter perform the authoritative check.
 Push-Location $appRoot
 try {
     & flutter config --enable-windows-desktop | Out-Host
-    & flutter pub get --offline
+    if ($Offline) { & flutter pub get --offline }
+    else { & flutter pub get }
     if ($LASTEXITCODE -ne 0) {
-        throw 'Offline dependency resolution failed. Populate ANIWORLD_PUB_CACHE once before building.'
+        throw 'Pub dependency resolution failed. Check your network or prepare the selected cache before using -Offline.'
     }
 
-    & flutter build windows --release --no-pub `
-        --build-name $Version --build-number $buildNumber `
-        --dart-define "APP_VERSION=$Version"
+    $buildArgs = @('build', 'windows', '--release', '--no-pub', '--build-name', $Version,
+        '--build-number', $buildNumber, '--dart-define', "APP_VERSION=$Version")
+    if ($ServerUrl) { $buildArgs += @('--dart-define', "ANIWORLD_SERVER_URL=$ServerUrl") }
+    & flutter @buildArgs
     if ($LASTEXITCODE -ne 0) {
         throw "Flutter Windows build failed with exit code $LASTEXITCODE"
     }

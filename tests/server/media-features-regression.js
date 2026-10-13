@@ -14,13 +14,7 @@ const {
 const {
   reconcileAiringWithOi
 } = require('../../apps/server/src/services/airing-reconcile');
-const {
-  mountOiPlaybackRoutes,
-  episodeIndexCandidates,
-  isPlausibleOiPlayback,
-  playbackPayload,
-  proxyUrlFor
-} = require('../../apps/server/src/routes/oiapi-playback');
+const { mountOiPlaybackRoutes } = require('../../apps/server/src/routes/oiapi-playback');
 const {
   currentYearFilter,
   getSectionMeta,
@@ -81,37 +75,6 @@ assert.strictEqual(
     'content-type': 'application/vnd.apple.mpegurl'
   }),
   true
-);
-
-assert.deepStrictEqual(episodeIndexCandidates('7'), ['7', '07', '007']);
-assert.strictEqual(
-  isPlausibleOiPlayback({ play_url: 'https://media.example/anime/7.mp4?token=abc' }),
-  true
-);
-assert.strictEqual(
-  isPlausibleOiPlayback({ play_url: 'https://media.example/poster/7.webp' }),
-  false
-);
-assert.strictEqual(
-  proxyUrlFor('https://media.example/anime/7.mp4?token=a%2Bb'),
-  '/api/video?url=https%3A%2F%2Fmedia.example%2Fanime%2F7.mp4%3Ftoken%3Da%2Bb'
-);
-assert.deepStrictEqual(
-  playbackPayload({
-    name: '第7集',
-    play_num: '7',
-    play_url: 'https://media.example/anime/7.mp4',
-    video_type: 'mp4'
-  }, { type_used: '2' }),
-  {
-    name: '第7集',
-    play_num: '7',
-    play_url: 'https://media.example/anime/7.mp4',
-    video_type: 'mp4',
-    source: 'oiapi',
-    proxy_url: '/api/video?url=https%3A%2F%2Fmedia.example%2Fanime%2F7.mp4',
-    type_used: '2'
-  }
 );
 
 assert.strictEqual(isAllowedPath('/api/v2/search/anime'), true);
@@ -214,70 +177,20 @@ async function testOiIndexRefreshByExactTitle() {
   assert.strictEqual(calls, 1);
 }
 
-async function testPlaybackUsesRefreshedOiIndex() {
-  const title = 'Playback Index Drift Exact Title';
+async function testRetiredPlaybackRoutes() {
   const routes = new Map();
-  const app = {
-    get(path, handler) {
-      routes.set(path, handler);
-    }
-  };
-  const playbackIndexes = [];
-  const fakeFetch = async url => {
-    const parsed = new URL(url);
-    if (!parsed.searchParams.has('n')) {
-      return {
-        status: 200,
-        data: {
-          code: 200,
-          data: [
-            { name: `${title} Sequel`, year: '2027' },
-            { name: title, year: '2026' }
-          ]
-        }
-      };
-    }
-    playbackIndexes.push(parsed.searchParams.get('n'));
-    if (parsed.searchParams.get('type') === '1') {
-      return {
-        status: 200,
-        data: {
-          code: 200,
-          data: {
-            name: title,
-            play_num: '1',
-            play_url: 'https://media.example/exact-title/1.mp4',
-            video_type: 'mp4'
-          }
-        }
-      };
-    }
-    return { status: 404, data: { code: 404 } };
-  };
-  mountOiPlaybackRoutes(app, { httpFetch: fakeFetch });
-
-  let statusCode = 200;
-  let payload;
-  await routes.get('/api/oi/play')({
-    query: { msg: title, n: '1', j: '1', type: 'auto' }
-  }, {
-    set() {},
-    status(code) {
-      statusCode = code;
-      return this;
-    },
-    json(value) {
-      payload = value;
-      return value;
-    }
-  });
-
-  assert.strictEqual(statusCode, 200);
-  assert.strictEqual(payload.resolved_msg, title);
-  assert.strictEqual(payload.resolved_n, 2);
-  assert.strictEqual(payload.index_refreshed, true);
-  assert(playbackIndexes.length > 0);
-  assert(playbackIndexes.every(index => index === '2'));
+  mountOiPlaybackRoutes({ get: (path, handler) => routes.set(path, handler) });
+  for (const path of ['/api/oi/play', '/api/oi/probe', '/api/oi/sources']) {
+    let statusCode;
+    let payload;
+    routes.get(path)({}, {
+      set() {},
+      status(code) { statusCode = code; return this; },
+      json(value) { payload = value; }
+    });
+    assert.strictEqual(statusCode, 410);
+    assert.strictEqual(payload.code, 'SOURCE_REMOVED');
+  }
 }
 
 async function testCompressedHttpResponse() {
@@ -365,7 +278,7 @@ async function testDanmakuRetryCacheAndDeduplication() {
 Promise.all([
   testAiringEpisodeCounts(),
   testOiIndexRefreshByExactTitle(),
-  testPlaybackUsesRefreshedOiIndex(),
+  testRetiredPlaybackRoutes(),
   testCompressedHttpResponse(),
   testDanmakuRetryCacheAndDeduplication()
 ])

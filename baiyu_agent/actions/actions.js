@@ -242,9 +242,9 @@ function executeAgentAction({ intent, message, database, userId, pageContext = {
     const title = meta ? toCard(meta).title : (pageContext.title || '这部番');
     const episode = playback?.episode ?? 1, resume = playback?.resume === true;
     return {
-      answer: `已向客户端发出《${title}》${resume ? '继续观看' : playback?.episode ? `第${episode}集播放` : '从头播放'}请求。`,
+      answer: `已向客户端发出《${title}》${resume ? '继续观看' : playback?.episode ? `第${episode}集播放` : '从头播放'}请求，请在客户端选择播放源后开始观看。`,
       playback: { state: 'requested', episode: resume ? null : episode, resume },
-      cards: meta ? [toCard(meta, '即将打开播放页')] : [cardFromPagePayload(contextPayload)],
+      cards: meta ? [toCard(meta, '选择播放源后开始观看')] : [cardFromPagePayload(contextPayload)],
       actions: [{ type: 'navigate', url, delayMs: 700 }, {
         type: 'play',
         title,

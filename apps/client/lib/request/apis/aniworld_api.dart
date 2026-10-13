@@ -7,7 +7,6 @@ import 'package:kazumi/modules/bangumi/bangumi_item.dart';
 import 'package:kazumi/modules/bangumi/bangumi_tag.dart';
 import 'package:kazumi/modules/comments/comment_item.dart';
 import 'package:kazumi/modules/notifications/comment_notification.dart';
-import 'package:kazumi/modules/roads/road_module.dart';
 import 'package:kazumi/request/config/api_endpoints.dart';
 import 'package:kazumi/request/core/dio_factory.dart';
 import 'package:kazumi/services/storage/storage.dart';
@@ -1093,90 +1092,6 @@ class AniWorldApi {
         .toList();
   }
 
-  static Future<List<Road>> getOiRoads(BangumiItem item) async {
-    final title = _oiMsgFromItem(item);
-    final data = await _getOiDetailsData(item);
-    final resolvedTitle = '${data['name'] ?? title}'.trim();
-    final resolvedIndex =
-        int.tryParse('${data['resolved_n'] ?? _oiIndexFromItem(item)}') ??
-            _oiIndexFromItem(item);
-    _rememberOiSelection(
-      item,
-      resolvedTitle.isEmpty ? title : resolvedTitle,
-      resolvedIndex,
-    );
-    final playlist = data['playlist'] is List ? data['playlist'] as List : [];
-    final urls = <String>[];
-    final names = <String>[];
-    for (var i = 0; i < playlist.length; i++) {
-      final raw = playlist[i];
-      final text = raw is Map
-          ? '${raw['name'] ?? raw['title'] ?? raw['ji'] ?? raw['url'] ?? ''}'
-          : '$raw';
-      if (_isPreviewEpisode(text)) {
-        continue;
-      }
-      final oiPlayIndex = i + 1;
-      urls.add(
-        'aniworld://oi-play?msg=${Uri.encodeComponent(resolvedTitle.isEmpty ? title : resolvedTitle)}&n=$resolvedIndex&j=$oiPlayIndex',
-      );
-      names.add(text.trim().isEmpty ? 'Episode $oiPlayIndex' : text.trim());
-    }
-    if (urls.isEmpty) {
-      final total = int.tryParse('${data['episodes'] ?? ''}') ?? 1;
-      for (var i = 1; i <= total.clamp(1, 80); i++) {
-        urls.add(
-          'aniworld://oi-play?msg=${Uri.encodeComponent(resolvedTitle.isEmpty ? title : resolvedTitle)}&n=$resolvedIndex&j=$i',
-        );
-        names.add('Episode $i');
-      }
-    }
-    return [Road(name: 'AniWorld', data: urls, identifier: names)];
-  }
-
-  /// Returns AniWorld's current playable episode list from CYCANI. The
-  /// section id is carried in each episode URL so playback does not have to
-  /// fuzzy-match a title again (important for multi-season anime).
-  static Future<List<Road>> getCycaniRoads(BangumiItem item) async {
-    final title = item.nameCn.trim().isNotEmpty ? item.nameCn : item.name;
-    final response = await _dio.get(
-      '/api/cycani/details',
-      queryParameters: {'title': title},
-    );
-    final data = _asMap(response.data);
-    final resolvedTitle = '${data['title'] ?? title}'.trim();
-    final videoId = '${data['videoId'] ?? ''}'.trim();
-    final rawSections =
-        data['sections'] is List ? data['sections'] as List : const [];
-    final urls = <String>[];
-    final names = <String>[];
-    for (var index = 0; index < rawSections.length; index++) {
-      final raw = rawSections[index];
-      if (raw is! Map) continue;
-      final section = Map<String, dynamic>.from(raw);
-      final sectionId = '${section['id'] ?? ''}'.trim();
-      if (sectionId.isEmpty) continue;
-      final episode = int.tryParse('${section['episode'] ?? ''}') ?? index + 1;
-      final displayTitle = '${section['title'] ?? ''}'.trim().isEmpty
-          ? '第${episode.toString().padLeft(2, '0')}集'
-          : '${section['title']}'.trim();
-      final query = <String, String>{
-        'title': resolvedTitle,
-        'videoId': videoId,
-        'sectionId': sectionId,
-        'j': '$episode',
-      };
-      final queryString = query.entries
-          .map((entry) =>
-              '${Uri.encodeQueryComponent(entry.key)}=${Uri.encodeQueryComponent(entry.value)}')
-          .join('&');
-      urls.add('aniworld://cycani-play?$queryString');
-      names.add(displayTitle);
-    }
-    if (urls.isEmpty) throw StateError('次元城未返回可播放剧集');
-    return [Road(name: 'AniWorld', data: urls, identifier: names)];
-  }
-
   static Future<BangumiItem?> getOiDetails(BangumiItem item) async {
     try {
       final title = _oiMsgFromItem(item);
@@ -1255,49 +1170,10 @@ class AniWorldApi {
     }
   }
 
+  // Retain an explicit error for old download/history entries, never call a retired API.
   static Future<AniWorldVideoSource> resolveVideoSource(String episodeUrl,
       {CancelToken? cancelToken}) async {
-    final uri = Uri.parse(episodeUrl);
-    if (uri.scheme != 'aniworld' ||
-        (uri.host != 'cycani-play' && uri.host != 'oi-play')) {
-      throw const FormatException('不支持的 AniWorld 剧集地址');
-    }
-    // Old history URLs use msg instead of title. Both formats now share one
-    // resolver, so playback and downloads cannot choose different episodes.
-    final parameters = uri.host == 'oi-play'
-        ? {
-            'title': uri.queryParameters['msg'] ?? '',
-            'j': uri.queryParameters['j'] ?? '1'
-          }
-        : uri.queryParameters;
-    final query = <String, String>{
-      for (final entry in parameters.entries)
-        if (entry.value.trim().isNotEmpty) entry.key: entry.value,
-    };
-    final response = await _dio.get(
-      '/api/cycani/play',
-      queryParameters: query,
-      cancelToken: cancelToken,
-      options: Options(headers: const {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-      }),
-    );
-    final data = _asMap(response.data);
-    final direct = '${data['play_url'] ?? ''}'.trim();
-    if (!isPlausibleAniWorldPlaybackUrl(direct) ||
-        _isBackendVideoProxy(direct)) {
-      throw Exception('次元城未返回可直连的播放地址，请重试或切换视频源');
-    }
-    final proxy = '${data['proxy_url'] ?? ''}'.trim();
-    final videoType = '${data['video_type'] ?? ''}';
-    return AniWorldVideoSource(
-      directUrl: direct,
-      downloadFallbackUrl:
-          proxy.isEmpty ? '' : '${ApiEndpoints.selfBackend}$proxy',
-      isDirectFile: isAniWorldDirectDownload(videoType, direct),
-      videoType: videoType,
-    );
+    throw StateError('公开版已移除内置播放源，请在详情页选择 AGE、DM84 或 enlie');
   }
 
   static Future<PackageInfo>? _reportPackageInfo;
@@ -1320,13 +1196,6 @@ class AniWorldApi {
               sendTimeout: const Duration(seconds: 3),
               receiveTimeout: const Duration(seconds: 3)));
     } catch (_) {/* Diagnostics must never delay or fail playback. */}
-  }
-
-  static bool _isBackendVideoProxy(String url) {
-    final uri = Uri.parse(url);
-    final backend = Uri.parse(ApiEndpoints.selfBackend);
-    return uri.origin == backend.origin &&
-        uri.path == '${backend.path}/api/video';
   }
 
   static BangumiItem oiToBangumi(Map<String, dynamic> item) {
@@ -1469,35 +1338,6 @@ class AniWorldApi {
       if (oiMsg.isNotEmpty) return oiMsg;
     } catch (_) {}
     return item.nameCn.isNotEmpty ? item.nameCn : item.name;
-  }
-
-  static void _rememberOiSelection(
-    BangumiItem item,
-    String oiMsg,
-    int oiIndex,
-  ) {
-    Map<String, dynamic> data = <String, dynamic>{};
-    try {
-      final decoded = jsonDecode(item.info);
-      if (decoded is Map) data = Map<String, dynamic>.from(decoded);
-    } catch (_) {}
-    data['source'] = 'oiapi';
-    data['oiMsg'] = oiMsg;
-    data['oiIndex'] = oiIndex;
-    item.info = jsonEncode(data);
-  }
-
-  static bool _isPreviewEpisode(String text) {
-    final normalized = text.trim().toLowerCase();
-    if (normalized.isEmpty) return false;
-    if (normalized.contains('pv') ||
-        normalized.contains('preview') ||
-        normalized.contains('鍏堝') ||
-        normalized.contains('棰勫憡')) {
-      return true;
-    }
-    final match = RegExp(r'\d+').firstMatch(normalized);
-    return match != null && int.tryParse(match.group(0) ?? '') == 0;
   }
 
   static String _airDateFromItem(

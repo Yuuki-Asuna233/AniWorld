@@ -2,7 +2,7 @@
 
 AniWorld 的 Flutter 客户端，基于 [Predidit/Kazumi](https://github.com/Predidit/Kazumi) 改造，接入本仓库的目录、账户、观看进度、白羽 Agent 和更新服务。
 
-[返回项目首页](../../README.md) · [服务端与部署](../../docs/development.md) · [Agent 实现](../../baiyu_agent/README.md)
+[从零部署与首次播放](../../docs/getting-started.md) · [返回项目首页](../../README.md) · [服务端与部署](../../docs/development.md) · [Agent 实现](../../baiyu_agent/README.md)
 
 ## 支持范围
 
@@ -34,14 +34,14 @@ Windows 将 ZIP 完整解压到可写目录后运行；更新时使用完整的�
 ## 构建环境
 
 - Flutter **3.44.3**，Dart SDK 范围以 [pubspec.yaml](pubspec.yaml) 为准。
-- Android SDK、JDK 17、工程指定的 NDK，以及 Android 签名配置。
+- Android SDK Platform 36、稳定版 Build-Tools、JDK 17 和 NDK 28.2.13676358；正式 APK 还需自己的签名。
 - Windows 需要 Visual Studio C++ 桌面开发组件、Flutter Windows Desktop 工具链与符号链接支持。
 - 完整仓库：客户端引用根目录 [packages](../../packages) 下的播放器 path dependencies，不能只复制 `apps/client`。
-- 发布脚本需要已准备好的 Pub cache。可设置 `ANIWORLD_PUB_CACHE`；Windows 构建缓存可通过 `ANIWORLD_BUILD_CACHE` 指定。
+- 发布脚本默认在线准备依赖，并发现标准 Pub cache；可设置 `ANIWORLD_PUB_CACHE` 或 `PUB_CACHE`。Windows 构建缓存默认在 LOCALAPPDATA 下，可通过 `ANIWORLD_BUILD_CACHE` 指定。
 
 签名字段参考 [key.properties.example](android/key.properties.example)，复制为私有 key.properties 后填入自己的配置。
 
-Android 的 [构建配置](android/app/build.gradle)在配置阶段就要求存在 `android/key.properties`。正式发布脚本还会校验既有签名证书；独立发行时需要一致的签名与证书校验配置，不能随意更换密钥后覆盖原有安装。
+Android debug 构建使用调试签名，不要求私有 `key.properties`；release 构建必须配置自己的正式签名。发布脚本校验签名证书和 APK 指纹，生成及配置步骤见 [入门指南](../../docs/getting-started.md#6-生成自己的正式签名)。同一发行渠道后续升级需保持签名一致。
 
 ## 本地运行
 
@@ -49,12 +49,15 @@ Android 的 [构建配置](android/app/build.gradle)在配置阶段就要求存�
 
 ```powershell
 npm run app:install
-npm run pc:run
+npm run app:run:android
 ```
 
-Android 已连接设备时使用 `npm run app:run:android`。两种平台共用同一 Flutter 工程，`pc:install` 和 `app:install` 均执行 `flutter pub get`。
+Android 运行需要已连接设备。Windows 使用 `npm run pc:run`。两种平台共用同一 Flutter 工程，`pc:install` 和 `app:install` 均执行 `flutter pub get`。
 
 ## 正式发布
+
+以下包装脚本在 Windows PowerShell 中运行，SDK 从 ANDROID_HOME、ANDROID_SDK_ROOT、Flutter 本地配置或标准目录发现，JDK 工具从 JAVA_HOME、PATH 或 Android Studio 标准目录发现。首次使用在线模式；`-Offline` 只用于已有依赖与原生库缓存。Android 签名校验可加 `-ValidateOnly`，两种平台都可加 `-ServerUrl "https://自己的服务域名"` 指定默认服务。
+
 
 以下版本号只是示例，实际发布应递增版本，并在仓库根目录执行：
 
@@ -86,7 +89,7 @@ npm run pc:release -- -Version 2.2.9
 
 ## 播放与反馈
 
-解析地址通过服务端获得，不代表视频数据都经服务端传输。常规直连媒体由本地播放器请求；特定源可能需要请求头、代理或清单适配。缓存效果受媒体格式、源站速度、链接有效期和本地存储影响。
+公开版内置 AGE、DM84、enlie 三种规则，由客户端搜索站点、解析集数和媒体地址，本地播放器请求媒体。后端目录提供元数据，不代表所选规则有对应作品。特定源可能需要请求头、验证码或清单适配。缓存效果受媒体格式、源站速度、链接有效期和本地存储影响。
 
 反馈问题请同时提供平台、安装包来源、发生时间、番剧与集数、源与线路、网络类型，以及转圈、闪退或画面掉帧等具体表现。不同构建即使使用同一版本号，也可能包含不同修改。
 

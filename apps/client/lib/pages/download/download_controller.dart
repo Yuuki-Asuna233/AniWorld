@@ -21,9 +21,7 @@ part 'download_controller.g.dart';
 
 bool shouldRefreshDownloadSource(String pluginName, String episodePageUrl) =>
     episodePageUrl.isNotEmpty &&
-    (pluginName == 'AniWorld' ||
-        episodePageUrl.startsWith('aniworld://cycani-play') ||
-        episodePageUrl.startsWith('aniworld://oi-play'));
+    (pluginName == 'AniWorld' || episodePageUrl.startsWith('aniworld://'));
 
 bool hasExistingDownloadEpisode(DownloadRecord record, int episodeNumber) =>
     record.episodes.containsKey(episodeNumber);
@@ -640,8 +638,7 @@ abstract class _DownloadController with Store {
 
     try {
       if (request.pluginName == 'AniWorld' ||
-          request.episodePageUrl.startsWith('aniworld://cycani-play') ||
-          request.episodePageUrl.startsWith('aniworld://oi-play')) {
+          request.episodePageUrl.startsWith('aniworld://')) {
         await _resolveAniWorldAndEnqueue(request);
         return;
       }

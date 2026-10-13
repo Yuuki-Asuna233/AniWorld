@@ -16,7 +16,7 @@ class CoverImagePolicy {
     try {
       var source = mirror.queryParameters['src'] ?? '';
       if (source.isEmpty && mirror.path.startsWith('/gimg/')) {
-        // CYCANI places app/src in the path, not the URL query. Parse the raw
+        // Some image services place app/src in the path, not the URL query. Parse the raw
         // text so an encoded source URL is decoded exactly once.
         final start = url.indexOf('/gimg/') + '/gimg/'.length;
         final parameters =

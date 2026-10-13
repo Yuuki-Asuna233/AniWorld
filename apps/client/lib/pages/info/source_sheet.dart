@@ -24,9 +24,15 @@ class SourceSheet extends StatefulWidget {
   const SourceSheet({
     super.key,
     required this.infoController,
+    this.explicitStart = false,
+    this.initialEpisode,
+    this.resume = false,
   });
 
   final InfoController infoController;
+  final bool explicitStart;
+  final int? initialEpisode;
+  final bool resume;
 
   @override
   State<SourceSheet> createState() => _SourceSheetState();
@@ -58,30 +64,13 @@ class _SourceSheetState extends State<SourceSheet> {
     pluginSearchService =
         PluginSearchService(infoController: widget.infoController);
     final plugins = playbackPlugins;
-    final aniworld = plugins
-        .where((plugin) => plugin.name.toLowerCase() == 'aniworld')
-        .toList(growable: false);
     widget.infoController.pluginSearchResponseList.clear();
     widget.infoController.pluginSearchStatus.clear();
-
-    // AniWorld has a direct title-to-episode flow and therefore keeps its
-    // synthetic result row. All other enabled rules are searched normally.
-    if (aniworld.isNotEmpty) {
-      final plugin = aniworld.first;
-      widget.infoController.pluginSearchResponseList.add(PluginSearchResponse(
-        pluginName: plugin.name,
-        data: [SearchItem(name: keyword, src: plugin.name)],
-      ));
-      widget.infoController.pluginSearchStatus[plugin.name] = 'success';
-    }
     for (final plugin in plugins) {
-      if (aniworld.isNotEmpty && plugin.name == aniworld.first.name) continue;
       widget.infoController.pluginSearchStatus[plugin.name] = 'pending';
       unawaited(pluginSearchService?.querySource(keyword, plugin.name));
     }
-    expandedSource = aniworld.isNotEmpty
-        ? aniworld.first.name
-        : (plugins.isEmpty ? null : plugins.first.name);
+    expandedSource = null;
     // One shot: whichever source reports results first opens, and from then on
     // the open card only moves when tapped.
     autoExpandDisposer = reaction<String?>(
@@ -354,11 +343,11 @@ class _SourceSheetState extends State<SourceSheet> {
       ..currentPlugin = plugin
       ..title = searchItem.name
       ..src = searchItem.src;
-    if (plugin.name == 'AniWorld' || searchItem.src == 'AniWorld') {
-      controller.beginQueryRoads('AniWorld', 'AniWorld');
-    } else {
-      controller.beginQueryRoads(searchItem.src, plugin.name);
+    if (widget.explicitStart) {
+      controller.requestPlaybackStart(
+          episode: widget.initialEpisode, resume: widget.resume);
     }
+    controller.beginQueryRoads(searchItem.src, plugin.name);
     if (!mounted) return;
     Navigator.of(context).pop();
     Modular.to.pushNamed('/video/', arguments: controller);
