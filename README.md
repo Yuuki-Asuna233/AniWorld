@@ -46,7 +46,7 @@ AniWorld 将网页、Node.js API、白羽 Agent 与基于 [Kazumi](https://githu
 
 安装包需要自行构建，使用前请配置自己的服务端地址。
 
-网页访问部署者提供的服务地址；客户端安装部署者提供的 AniWorld APK 或 Windows ZIP，并在设置中填写可访问的服务端地址。访问门禁密码与账户登录密码是两套机制。
+网页访问部署者提供的服务地址；客户端安装部署者提供的 AniWorld APK 或 Windows ZIP，并在设置中填写可访问的服务端地址。服务器可选择是否开启访问门禁；云端个人数据需要注册登录。
 
 **Windows 请完整解压发布包，保留同目录的 DLL、data 和其他运行文件。** 更新时使用完整的新发布包。Kazumi 的 Releases、应用商店和社区渠道发布的是上游 Kazumi，不是 AniWorld 安装包。
 
@@ -69,19 +69,20 @@ npm ci
 npm run setup:env
 ```
 
-首次运行 `setup:env` 会生成私有 `.env` 和符合下列要求的随机值；已有配置不会覆盖。打开 `.env` 查看自己的门禁密码。手动配置时遵守：
+首次运行 `setup:env` 会生成私有 `.env` 和随机密钥，已有配置不会覆盖。公开模板默认关闭访问门禁；手动配置时遵守：
 
 | 配置 | 要求 |
 |---|---|
 | `JWT_SECRET` | 至少 32 个字符的独立随机密钥 |
-| `ACCESS_GATE_PASSWORD` | 恰好 18 个字符，包含大写、小写、数字和符号 |
-| `ACCESS_GATE_SECRET` | 至少 32 个字符的另一条随机密钥 |
+| `ACCESS_GATE_ENABLED` | 公开模板为 false；未设置此项的旧部署仍开启门禁 |
+| `ACCESS_GATE_PASSWORD` | 开启门禁时必填，恰好 18 个字符，包含大写、小写、数字和符号 |
+| `ACCESS_GATE_SECRET` | 开启门禁时必填，至少 32 个字符的另一条随机密钥 |
 
 ```powershell
 npm start
 ```
 
-浏览器打开 <http://localhost:3000> 并输入访问门禁密码。首次启动会创建 `data/runtime/anime_user.db`，60 秒后开始后台元数据同步，随后默认每 12 小时同步一次。初始数据库并不附带完整番剧库，内容加载还取决于上游可达性和同步进度。
+浏览器打开 <http://localhost:3000> ；开启门禁的服务器才需要输入访问密码。首次启动会创建 `data/runtime/anime_user.db`，60 秒后开始后台元数据同步，随后默认每 12 小时同步一次。初始数据库并不附带完整番剧库，内容加载还取决于上游可达性和同步进度。
 
 LLM、Embedding、SMTP、网页搜索与弹幕凭据为按功能选配；不配置模型仍可使用基础页面，但白羽不会自动替代模型执行完整对话。
 

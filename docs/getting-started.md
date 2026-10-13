@@ -34,7 +34,7 @@ npm ci
 npm run setup:env
 ```
 
-第二条命令从模板生成私有 `.env`，随机生成两个独立签名密钥和符合要求的 18 字符门禁密码。已有 `.env` 时会拒绝覆盖。打开 `.env`，记下 `ACCESS_GATE_PASSWORD`，手机和浏览器都用它通过门禁。不要将此文件上传到 GitHub 或贴到问题反馈里。
+第二条命令从模板生成私有 `.env` 和随机密钥，已有文件时拒绝覆盖。公开模板默认 `ACCESS_GATE_ENABLED=false`，连接服务不需要访问密码。需要限制访问时改为 true，并使用生成的 `ACCESS_GATE_PASSWORD`；未设置开关的旧部署仍保持门禁。不要将 `.env` 上传到 GitHub 或贴到反馈里。
 
 首次只验证基础功能时，可以留空 LLM、Embedding、SMTP、Tavily 和弹幕服务凭据。它们分别影响白羽模型、向量检索、邮件发送、网页检索和弹幕，**不作为三个客户端规则播放的前置条件**。需要这些功能再按 [进阶指南](development.md) 配置。
 
@@ -44,7 +44,7 @@ npm run setup:env
 npm start
 ```
 
-让这个终端保持运行。看到监听端口的启动日志后，在电脑浏览器打开 `http://127.0.0.1:3000`，输入 `.env` 中的门禁密码。能够进入页面，说明服务和门禁已连通；页面内容齐全与播放是否可用还要继续检查。
+让这个终端保持运行。看到监听端口的启动日志后，在电脑浏览器打开 `http://127.0.0.1:3000`，默认可直接进入；开启门禁时输入 `.env` 中的访问密码。能够进入页面，说明服务已连通；页面内容齐全与播放是否可用还要继续检查。
 
 首次创建的数据库没有完整番剧资料。启动 60 秒后会后台同步近期季度，后续默认每 12 小时同步。观察日志中的 `[sync] Completed ... total upserted: ...`，结合首页内容判断；出现 Completed 但数量为 0 或有网络错误，不算导入成功。
 
@@ -59,7 +59,7 @@ npm start
 
 ## 4. 先在手机上检查连接
 
-电脑和手机连接同一局域网，在电脑执行 `ipconfig`，找到实际联网网卡的 IPv4，例如 `192.168.1.20`。在手机浏览器打开 `http://192.168.1.20:3000`，应该能看到门禁页。
+电脑和手机连接同一局域网，在电脑执行 `ipconfig`，找到实际联网网卡的 IPv4，例如 `192.168.1.20`。在手机浏览器打开 `http://192.168.1.20:3000`，应该能看到首页或服务器开启的门禁页。
 
 - 手机的 `127.0.0.1` / `localhost` 指向手机，不能用来访问电脑。
 - 若手机打不开而电脑能打开，检查 Windows 防火墙是否允许 Node 服务在当前网络访问 TCP 3000，以及 Wi-Fi 是否开启客户端隔离或访客网络。
@@ -96,7 +96,7 @@ keytool -genkeypair -v -keystore apps/client/android/aniworld-release.jks -store
 按提示填写密码及证书信息。再读取证书 SHA-256 指纹，命令会提示输入 keystore 密码：
 
 ```powershell
-keytool -J-Duser.language=en -J-Duser.country=US -list -v -keystore apps/client/android/aniworld-release.jks -alias aniworld
+keytool '-J-Duser.language=en' '-J-Duser.country=US' -list -v -keystore apps/client/android/aniworld-release.jks -alias aniworld
 Copy-Item apps/client/android/key.properties.example apps/client/android/key.properties
 ```
 
@@ -145,12 +145,12 @@ npm run app:release -- -Version 2.2.10 -ServerUrl "http://192.168.1.20:3000"
 ## 8. 连接、选源并检查首次播放
 
 1. 打开 App，在门禁页点击 **服务器连接设置**，填入步骤 4 验证过的地址。
-2. 输入自己的 `ACCESS_GATE_PASSWORD`。账户登录密码与门禁密码不同。
+2. 无门禁的服务器连接后直接进入。仅开启门禁时输入 `ACCESS_GATE_PASSWORD`，它与账户登录密码不同。
 3. 打开有数据的首页或搜索作品，进入详情，点击 **开始观看**。
 4. 在 **AGE、DM84、enlie** 中选择有匹配结果的源，确认作品和季度，再选择集数播放。站内搜索结果是目录资料，不表示三个源都收录了这部作品。
 5. 确认画面、声音、播放进度和缓冲进度正常；再尝试暂停继续、切换集数和拖动进度。能看到首页不等于媒体线路已经验证通过。
 
-通过门禁后，本地追番和历史可以先用；云端个人数据同步需要注册登录。SMTP 未配置时验证码只写在服务端控制台，正式向他人提供注册应配置邮件服务。白羽未配置模型时不会提供完整模型对话。
+连接后，本地追番和历史可以先用；云端个人数据同步需要注册登录。SMTP 未配置时验证码只写在服务端控制台，正式向他人提供注册应配置邮件服务。白羽未配置模型时不会提供完整模型对话。
 
 白羽发起播放会打开同一个客户端选源面板，保留指定集数或续播意图。旧记录若指向已移除的内置源，需要重新选源；已完成的本地下载不依赖该在线源。
 
@@ -160,7 +160,7 @@ npm run app:release -- -Version 2.2.10 -ServerUrl "http://192.168.1.20:3000"
 |---|---|
 | API 启动报密钥或门禁错误 | 首次用 `npm run setup:env`；已有配置按模板要求修改，不要覆盖旧密钥 |
 | 首页为空 | 检查同步日志和上游连通性，必要时停止 API 后主动同步 |
-| 手机无法进入门禁 | 先用手机浏览器检查同一地址；核对网卡 IP、防火墙、端口和网络隔离 |
+| 手机无法连接服务 | 先用手机浏览器检查同一地址；核对网卡 IP、防火墙、端口和网络隔离 |
 | keytool / apksigner 找不到 | 检查 JDK PATH / JAVA_HOME、ANDROID_HOME、SDK Build-Tools |
 | pub get / 原生库下载失败 | 检查 pub.dev、GitHub 网络和自定义缓存设置；首次使用在线构建 |
 | 签名指纹不符 | 核对别名、keystore 和 expectedCertSha256，不要临时换钥匙绕过 |

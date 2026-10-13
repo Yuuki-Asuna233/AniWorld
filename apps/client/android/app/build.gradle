@@ -49,7 +49,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.aniworld.kazumi"
+        applicationId "com.aniworld.community"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdkVersion flutter.minSdkVersion
@@ -78,6 +78,14 @@ android {
             shrinkResources true
         }
     }
+}
+
+// media-kit jars carry native libraries as Java resources, so NDK ABI filters
+// alone cannot remove them. Filter both packaging paths to match the engine.
+if (project.findProperty('target-platform') == 'android-arm64') {
+    def unsupportedLibraries = ['**/armeabi-v7a/**', '**/x86/**', '**/x86_64/**']
+    android.packagingOptions.jniLibs.excludes.addAll(unsupportedLibraries)
+    android.packagingOptions.resources.excludes.addAll(unsupportedLibraries)
 }
 
 // Debug builds use the standard debug key; release builds always require an explicit key.

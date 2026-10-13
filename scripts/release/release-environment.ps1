@@ -57,3 +57,26 @@ function Get-ReleaseApkSigner {
     }
     throw 'apksigner not found. Install a stable Android SDK Build-Tools version in Android Studio.'
 }
+
+# The webview plugin otherwise downloads NuGet 5.10, which cannot use
+# NUGET_SCRATCH. Pin a signed upstream CLI that supports isolated build locks.
+function Initialize-ReleaseNuGet {
+    param([string]$CacheRoot)
+    $directory = Join-Path $CacheRoot 'tools\nuget-6.14.0'
+    $executable = Join-Path $directory 'nuget.exe'
+    $expectedHash = '92dbed160ddee0f64b901e907439e021211b428e57c089ecc12fc38dcc4bd9a5'
+    $valid = (Test-Path -LiteralPath $executable) -and
+        ((Get-FileHash -Algorithm SHA256 -LiteralPath $executable).Hash.ToLowerInvariant() -eq $expectedHash)
+    if (-not $valid) {
+        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+        $temporary = "$executable.download"
+        & curl.exe -fL --retry 2 --connect-timeout 20 --max-time 180 --output $temporary `
+            'https://dist.nuget.org/win-x86-commandline/v6.14.0/nuget.exe'
+        if ($LASTEXITCODE -ne 0) { throw 'NuGet CLI download failed. Check access to dist.nuget.org.' }
+        if ((Get-FileHash -Algorithm SHA256 -LiteralPath $temporary).Hash.ToLowerInvariant() -ne $expectedHash) {
+            throw 'NuGet CLI checksum mismatch.'
+        }
+        Move-Item -LiteralPath $temporary -Destination $executable -Force
+    }
+    $env:PATH = "$directory;$env:PATH"
+}

@@ -94,6 +94,7 @@ class GStorage {
           if (serverAddress != null) ...{
             SettingsKeys.serverBaseUrl.name: serverAddress,
             SettingsKeys.accessGateToken.name: '',
+            SettingsKeys.accessGatePublicServer.name: '',
           },
         });
         if (identity.owner != activeAccountOwner) {

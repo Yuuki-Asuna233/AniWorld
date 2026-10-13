@@ -34,6 +34,7 @@ class _AppWidgetState extends State<AppWidget>
   bool _checkingAccess = true;
   bool _accessGranted = false;
   int _contentGeneration = 0;
+  int _accessCheckGeneration = 0;
 
   @override
   void initState() {
@@ -53,8 +54,9 @@ class _AppWidgetState extends State<AppWidget>
   }
 
   Future<void> _checkAccess() async {
+    final generation = ++_accessCheckGeneration;
     final unlocked = await AccessGateService.checkAccess();
-    if (!mounted) return;
+    if (!mounted || generation != _accessCheckGeneration) return;
     final needsInitialUnlock = unlocked && !_accessGranted;
     setState(() {
       _checkingAccess = false;
@@ -66,6 +68,7 @@ class _AppWidgetState extends State<AppWidget>
 
   void _unlockApplication() {
     if (!mounted) return;
+    _accessCheckGeneration++;
     setState(() {
       _checkingAccess = false;
       _accessGranted = true;
@@ -76,11 +79,15 @@ class _AppWidgetState extends State<AppWidget>
 
   void _lockApplication() {
     if (!mounted) return;
+    _accessCheckGeneration++;
     setState(() {
       _checkingAccess = false;
       _accessGranted = false;
     });
     _restartFromRoot();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkAccess();
+    });
   }
 
   void _restartFromRoot() {

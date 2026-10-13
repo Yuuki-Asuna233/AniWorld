@@ -44,9 +44,15 @@ if (-not (Test-Path -LiteralPath $keyStorePath)) {
 }
 
 $keytool = Get-ReleaseKeytool
-$keyInfo = & $keytool -J-Duser.language=en -J-Duser.country=US -list -v -keystore $keyStorePath `
-    -storepass $keyProperties.storePassword -alias $keyProperties.keyAlias 2>&1
-if ($LASTEXITCODE -ne 0) { throw "Unable to read signing keystore: $keyInfo" }
+$nativeErrorPolicy = $ErrorActionPreference
+try {
+    # Windows PowerShell treats native stderr warnings as error records.
+    $ErrorActionPreference = 'Continue'
+    $keyInfo = & $keytool '-J-Duser.language=en' '-J-Duser.country=US' -list -v -keystore $keyStorePath `
+        -storepass $keyProperties.storePassword -alias $keyProperties.keyAlias 2>&1
+    $keytoolExit = $LASTEXITCODE
+} finally { $ErrorActionPreference = $nativeErrorPolicy }
+if ($keytoolExit -ne 0) { throw "Unable to read signing keystore: $keyInfo" }
 $certMatch = [regex]::Match(($keyInfo -join "`n"), 'SHA256:\s*([0-9A-F:]+)', 'IgnoreCase')
 if (-not $certMatch.Success) { throw 'Unable to read signing certificate SHA-256.' }
 $actualCert = $certMatch.Groups[1].Value.Replace(':', '').ToLowerInvariant()
@@ -134,8 +140,12 @@ if (-not (Test-Path -LiteralPath $sourceApk)) {
     throw "Built APK was not found: $sourceApk"
 }
 
-$apkInfo = & $apksigner verify --print-certs $sourceApk 2>&1
-if ($LASTEXITCODE -ne 0) { throw "APK signature verification failed: $apkInfo" }
+try {
+    $ErrorActionPreference = 'Continue'
+    $apkInfo = & $apksigner verify --print-certs $sourceApk 2>&1
+    $apksignerExit = $LASTEXITCODE
+} finally { $ErrorActionPreference = $nativeErrorPolicy }
+if ($apksignerExit -ne 0) { throw "APK signature verification failed: $apkInfo" }
 $apkCertMatch = [regex]::Match(
     ($apkInfo -join "`n"),
     'certificate SHA-256 digest:\s*([0-9a-f]+)',

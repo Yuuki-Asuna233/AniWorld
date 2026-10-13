@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:kazumi/app_module.dart';
 import 'package:kazumi/app_widget.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -21,6 +22,14 @@ import 'package:kazumi/request/config/api_endpoints.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(['AniWorld / Kazumi'],
+        await rootBundle.loadString('assets/statements/GPL-3.0.txt'));
+    yield LicenseEntryWithLineBreaks(
+        ['播放器与规则来源'],
+        await rootBundle
+            .loadString('assets/statements/THIRD_PARTY_NOTICES.txt'));
+  });
   MediaKit.ensureInitialized();
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

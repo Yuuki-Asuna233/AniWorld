@@ -15,7 +15,7 @@ class AboutModule extends Module {
     r.child(
       "/license",
       child: (_) => const LicensePage(
-        applicationName: 'Kazumi',
+        applicationName: 'AniWorld',
         applicationVersion: ApiEndpoints.version,
         applicationLegalese: '开源许可证',
       ),

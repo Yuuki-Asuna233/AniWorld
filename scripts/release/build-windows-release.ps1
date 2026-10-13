@@ -24,10 +24,15 @@ $buildCacheRoot = if ($env:ANIWORLD_BUILD_CACHE) {
 }
 $buildTemp = Join-Path $buildCacheRoot 'temp'
 $nugetCache = Join-Path $buildCacheRoot 'nuget'
-New-Item -ItemType Directory -Path $buildTemp, $nugetCache -Force | Out-Null
+$nugetScratch = Join-Path $buildCacheRoot 'nuget-scratch'
+$nugetHttpCache = Join-Path $buildCacheRoot 'nuget-http-cache'
+New-Item -ItemType Directory -Path $buildTemp, $nugetCache, $nugetScratch, $nugetHttpCache -Force | Out-Null
 $env:TEMP = $buildTemp
 $env:TMP = $buildTemp
 $env:NUGET_PACKAGES = $nugetCache
+$env:NUGET_SCRATCH = $nugetScratch
+$env:NUGET_HTTP_CACHE_PATH = $nugetHttpCache
+Initialize-ReleaseNuGet -CacheRoot $buildCacheRoot
 
 Initialize-ReleasePubCache -Offline:$Offline
 Write-Host "Build temp: $buildTemp"
@@ -45,7 +50,9 @@ if (-not (Test-Path -LiteralPath $appRoot)) {
 }
 
 function Test-SymlinkSupport {
-    $testRoot = Join-Path ([IO.Path]::GetTempPath()) ("aniworld-symlink-test-" + [Guid]::NewGuid().ToString('N'))
+    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
+    $testRoot = [IO.Path]::GetFullPath((Join-Path $tempRoot ("aniworld-symlink-test-" + [Guid]::NewGuid().ToString('N'))))
+    if (-not $testRoot.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid symlink probe directory.' }
     New-Item -ItemType Directory -Path $testRoot -Force | Out-Null
     try {
         $target = Join-Path $testRoot 'target'
@@ -97,6 +104,12 @@ if (-not (Test-Path -LiteralPath $exePath)) {
     throw "Built AniWorld.exe was not found: $exePath"
 }
 
+$bundleReadme = (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $appRoot 'windows\PUBLIC_README.txt')).Replace('{{VERSION}}', $Version)
+[IO.File]::WriteAllText((Join-Path $bundleDir 'README.txt'), $bundleReadme, (New-Object Text.UTF8Encoding $false))
+Copy-Item -LiteralPath (Join-Path $appRoot 'LICENSE') -Destination (Join-Path $bundleDir 'GPL-3.0.txt') -Force
+Copy-Item -LiteralPath (Join-Path $projectRoot 'LICENSING.md') -Destination $bundleDir -Force
+Copy-Item -LiteralPath (Join-Path $appRoot 'assets\statements\THIRD_PARTY_NOTICES.txt') -Destination $bundleDir -Force
+
 $releaseDir = Join-Path $projectRoot 'data\releases'
 New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
@@ -111,7 +124,8 @@ $temporaryZip = "$releaseZip.tmp.zip"
 Remove-Item -LiteralPath $temporaryZip -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $releaseZip -Force -ErrorAction SilentlyContinue
 
-Compress-Archive -Path (Join-Path $bundleDir '*') -DestinationPath $temporaryZip -Force
+$bundleItems = Get-ChildItem -LiteralPath $bundleDir | Where-Object { $_.Extension -ne '.pdb' }
+Compress-Archive -LiteralPath @($bundleItems.FullName) -DestinationPath $temporaryZip -Force
 Move-Item -LiteralPath $temporaryZip -Destination $releaseZip -Force
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $releaseZip).Hash.ToLowerInvariant()
 

@@ -89,7 +89,7 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "AniWorld" "\0"
+            VALUE "CompanyName", "AniWorld Community" "\0"
             VALUE "FileDescription", "AniWorld" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "AniWorld" "\0"

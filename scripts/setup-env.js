@@ -26,7 +26,8 @@ const configuration = template.split('\n').map(line => {
 }).join('\n');
 try {
   fs.writeFileSync(destination, configuration, { flag: 'wx', mode: 0o600 });
-  console.log('Created .env with independent random secrets. Read ACCESS_GATE_PASSWORD there to unlock the client.');
+  console.log('Created .env with independent random secrets. The public template disables the outer access gate.');
+  console.log('To require a password, set ACCESS_GATE_ENABLED=true and use ACCESS_GATE_PASSWORD from .env.');
   console.log('Model, email and danmaku services are optional. Do not publish .env.');
 } catch (error) {
   if (error.code === 'EEXIST') {

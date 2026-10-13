@@ -72,7 +72,36 @@ function extractToken(req) {
   return '';
 }
 
-function createAccessGate({ jwt, password, secret, tokenTtl = DEFAULT_TOKEN_TTL }) {
+// Missing flags preserve access control on existing deployments.
+function parseAccessGateEnabled(value) {
+  const flag = String(value ?? '').trim().toLowerCase();
+  if (!flag || flag === 'true') return true;
+  if (flag === 'false') return false;
+  throw new Error('ACCESS_GATE_ENABLED must be true or false');
+}
+
+function createAccessGate({ jwt, password, secret, enabled = true, tokenTtl = DEFAULT_TOKEN_TTL }) {
+  if (enabled === false) {
+    return {
+      mountRoutes(app) {
+        app.get('/api/access/status', (_req, res) => {
+          res.setHeader('Cache-Control', 'no-store');
+          res.json({ enabled: false, unlocked: true });
+        });
+        app.post('/api/access/unlock', (_req, res) => {
+          res.setHeader('Cache-Control', 'no-store');
+          res.json({ success: true, enabled: false, unlocked: true });
+        });
+        app.post('/api/access/logout', (_req, res) => {
+          res.clearCookie(COOKIE_NAME);
+          res.json({ success: true });
+        });
+      },
+      middleware: (_req, _res, next) => next(),
+      verifyToken: () => false,
+      issueToken: () => { throw new Error('Access gate is disabled'); },
+    };
+  }
   validateAccessGateConfig({ password, secret });
   const attempts = new Map();
 
@@ -133,7 +162,7 @@ function createAccessGate({ jwt, password, secret, tokenTtl = DEFAULT_TOKEN_TTL 
   function mountRoutes(app) {
     app.get('/api/access/status', (req, res) => {
       res.setHeader('Cache-Control', 'no-store');
-      res.json({ unlocked: verifyToken(extractToken(req)) });
+      res.json({ enabled: true, unlocked: verifyToken(extractToken(req)) });
     });
 
     app.post('/api/access/unlock', (req, res) => {
@@ -213,6 +242,7 @@ function createAccessGate({ jwt, password, secret, tokenTtl = DEFAULT_TOKEN_TTL 
 module.exports = {
   COOKIE_NAME,
   createAccessGate,
+  parseAccessGateEnabled,
   isStrongPassword,
   validateAccessGateConfig,
 };

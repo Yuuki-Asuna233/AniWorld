@@ -76,7 +76,7 @@ class ServerConfigService {
       }
 
       final decoded = jsonDecode(body);
-      if (decoded is! Map || decoded['unlocked'] is! bool) {
+      if (decoded is! Map || !AccessGateService.isCompatibleStatus(decoded)) {
         return ServerTestResult.failure(
           '地址可以访问，但不是兼容的 AniWorld 服务器',
           normalizedAddress: normalized,

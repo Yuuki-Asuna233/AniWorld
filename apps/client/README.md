@@ -22,14 +22,16 @@ AniWorld 的 Flutter 客户端，基于 [Predidit/Kazumi](https://github.com/Pre
 
 Windows 将 ZIP 完整解压到可写目录后运行；更新时使用完整的新包，不要只替换 exe。
 
-公开版默认使用本地服务地址，不附带维护者的私人服务权限。在客户端设置中配置自己的服务端地址，再完成访问门禁和账户登录：
+Windows 系统需具备 [Visual C++ x64 运行库](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist) 和 [WebView2 Runtime](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)；包内 README 提供缺少依赖时的安装说明。
+
+公开版默认使用本地服务地址，不附带维护者的私人服务权限。首次打开可设置自己的服务端地址，无门禁的服务器连接后直接进入：
 
 - 电脑本地开发可使用 `http://localhost:3000`。
 - 真机使用电脑的局域网 IP 或自己的 HTTPS 服务域名；手机的 localhost 指向手机自身。
 - Android 模拟器访问宿主机通常使用 `http://10.0.2.2:3000`。
 - 确认防火墙和监听端口允许设备连接。使用不同网络时，服务地址必须能跨网络访问。
 
-门禁密码由部署者设置；账户密码由用户注册时设置。两者不能互相替代。
+需要同步云端个人数据时注册登录。若服务器开启门禁，还需部署者提供的访问密码。公开 Android 包使用 com.aniworld.community，Windows 使用独立的 AniWorld Community 数据目录，可与私人版分别使用。
 
 ## 构建环境
 

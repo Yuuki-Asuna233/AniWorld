@@ -103,8 +103,7 @@ class _AboutPageState extends State<AboutPage> {
         body: SettingsList(
           maxWidth: 1000,
           sections: [
-            // Keep only operational storage/logs and application update.
-            if (false) ...[
+            // Public distributions keep the component licenses accessible.
             SettingsSection(
               tiles: [
                 SettingsTile.navigation(
@@ -118,129 +117,140 @@ class _AboutPageState extends State<AboutPage> {
                 ),
               ],
             ),
-            SettingsSection(
-              title: Text('外部链接', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    launchUrl(Uri.parse(ApiEndpoints.projectUrl),
-                        mode: LaunchMode.externalApplication);
-                  },
-                  title: Text('项目主页', style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    launchUrl(Uri.parse(ApiEndpoints.sourceUrl),
-                        mode: LaunchMode.externalApplication);
-                  },
-                  title: Text('代码仓库', style: TextStyle(fontFamily: fontFamily)),
-                  value:
-                      Text('Github', style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    launchUrl(Uri.parse(ApiEndpoints.iconUrl),
-                        mode: LaunchMode.externalApplication);
-                  },
-                  title: Text('项目资源', style: TextStyle(fontFamily: fontFamily)),
-                  value:
-                      Text('AniWorld', style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    launchUrl(Uri.parse(ApiEndpoints.bangumiIndex),
-                        mode: LaunchMode.externalApplication);
-                  },
-                  title: Text('番剧索引', style: TextStyle(fontFamily: fontFamily)),
-                  value:
-                      Text('Bangumi', style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    launchUrl(Uri.parse('https://trace.moe'),
-                        mode: LaunchMode.externalApplication);
-                  },
-                  title: Text('以图搜番', style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('trace.moe',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    launchUrl(Uri.parse(ApiEndpoints.dandanIndex),
-                        mode: LaunchMode.externalApplication);
-                  },
-                  title: Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
-                  description: Text('ID: ${dandanCredentials['id']}',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('弹弹play开放平台',
-                      style: TextStyle(fontFamily: fontFamily)),
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: Text('社区', style: TextStyle(fontFamily: fontFamily)),
-              tiles: [
-                SettingsTile.navigation(
-                  onPressed: (_) {
-                    launchUrl(Uri.parse(ApiEndpoints.telegramGroup),
-                        mode: LaunchMode.externalApplication);
-                  },
-                  title: Text('Telegram',
-                      style: TextStyle(fontFamily: fontFamily)),
-                  value: Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
-                ),
-              ],
-            ),
-            if (isDesktop()) // 之后如果有非桌面平台的新选项可以移除
+            if (false) ...[
               SettingsSection(
-                title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
+                title: Text('外部链接', style: TextStyle(fontFamily: fontFamily)),
                 tiles: [
                   SettingsTile.navigation(
                     onPressed: (_) {
-                      if (menuController.isOpen) {
-                        menuController.close();
-                      } else {
-                        menuController.open();
-                      }
+                      launchUrl(Uri.parse(ApiEndpoints.projectUrl),
+                          mode: LaunchMode.externalApplication);
                     },
                     title:
-                        Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
-                    value: MenuAnchor(
-                      consumeOutsideTap: true,
-                      controller: menuController,
-                      builder: (_, __, ___) {
-                        return Text(exitBehaviorTitles[exitBehavior]);
+                        Text('项目主页', style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      launchUrl(Uri.parse(ApiEndpoints.sourceUrl),
+                          mode: LaunchMode.externalApplication);
+                    },
+                    title:
+                        Text('代码仓库', style: TextStyle(fontFamily: fontFamily)),
+                    value: Text('Github',
+                        style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      launchUrl(Uri.parse(ApiEndpoints.iconUrl),
+                          mode: LaunchMode.externalApplication);
+                    },
+                    title:
+                        Text('项目资源', style: TextStyle(fontFamily: fontFamily)),
+                    value: Text('AniWorld',
+                        style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      launchUrl(Uri.parse(ApiEndpoints.bangumiIndex),
+                          mode: LaunchMode.externalApplication);
+                    },
+                    title:
+                        Text('番剧索引', style: TextStyle(fontFamily: fontFamily)),
+                    value: Text('Bangumi',
+                        style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      launchUrl(Uri.parse('https://trace.moe'),
+                          mode: LaunchMode.externalApplication);
+                    },
+                    title:
+                        Text('以图搜番', style: TextStyle(fontFamily: fontFamily)),
+                    value: Text('trace.moe',
+                        style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      launchUrl(Uri.parse(ApiEndpoints.dandanIndex),
+                          mode: LaunchMode.externalApplication);
+                    },
+                    title:
+                        Text('弹幕来源', style: TextStyle(fontFamily: fontFamily)),
+                    description: Text('ID: ${dandanCredentials['id']}',
+                        style: TextStyle(fontFamily: fontFamily)),
+                    value: Text('弹弹play开放平台',
+                        style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: Text('社区', style: TextStyle(fontFamily: fontFamily)),
+                tiles: [
+                  SettingsTile.navigation(
+                    onPressed: (_) {
+                      launchUrl(Uri.parse(ApiEndpoints.telegramGroup),
+                          mode: LaunchMode.externalApplication);
+                    },
+                    title: Text('Telegram',
+                        style: TextStyle(fontFamily: fontFamily)),
+                    value:
+                        Text('点击加入', style: TextStyle(fontFamily: fontFamily)),
+                  ),
+                ],
+              ),
+              if (isDesktop()) // 之后如果有非桌面平台的新选项可以移除
+                SettingsSection(
+                  title: Text('默认行为', style: TextStyle(fontFamily: fontFamily)),
+                  tiles: [
+                    SettingsTile.navigation(
+                      onPressed: (_) {
+                        if (menuController.isOpen) {
+                          menuController.close();
+                        } else {
+                          menuController.open();
+                        }
                       },
-                      menuChildren: [
-                        for (int i = 0; i < 3; i++)
-                          MenuItemButton(
-                            requestFocusOnHover: false,
-                            onPressed: () {
-                              exitBehavior = i;
-                              GStorage.putSetting(SettingsKeys.exitBehavior, i);
-                              setState(() {});
-                            },
-                            child: Container(
-                              height: 48,
-                              constraints: BoxConstraints(minWidth: 112),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  exitBehaviorTitles[i],
-                                  style: TextStyle(
-                                    color: i == exitBehavior
-                                        ? Theme.of(context).colorScheme.primary
-                                        : null,
+                      title:
+                          Text('关闭时', style: TextStyle(fontFamily: fontFamily)),
+                      value: MenuAnchor(
+                        consumeOutsideTap: true,
+                        controller: menuController,
+                        builder: (_, __, ___) {
+                          return Text(exitBehaviorTitles[exitBehavior]);
+                        },
+                        menuChildren: [
+                          for (int i = 0; i < 3; i++)
+                            MenuItemButton(
+                              requestFocusOnHover: false,
+                              onPressed: () {
+                                exitBehavior = i;
+                                GStorage.putSetting(
+                                    SettingsKeys.exitBehavior, i);
+                                setState(() {});
+                              },
+                              child: Container(
+                                height: 48,
+                                constraints: BoxConstraints(minWidth: 112),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    exitBehaviorTitles[i],
+                                    style: TextStyle(
+                                      color: i == exitBehavior
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                          : null,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
             SettingsSection(
               title: Text('存储与日志', style: TextStyle(fontFamily: fontFamily)),
@@ -273,14 +283,16 @@ class _AboutPageState extends State<AboutPage> {
                         SettingsKeys.autoUpdate, autoUpdate);
                     setState(() {});
                   },
-                  title: Text('启动时检查更新', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('启动时检查更新', style: TextStyle(fontFamily: fontFamily)),
                   initialValue: autoUpdate,
                 ),
                 SettingsTile.navigation(
                   onPressed: (_) {
                     myController.checkUpdate();
                   },
-                  title: Text('检查应用更新', style: TextStyle(fontFamily: fontFamily)),
+                  title:
+                      Text('检查应用更新', style: TextStyle(fontFamily: fontFamily)),
                   value: Text('当前版本 ${ApiEndpoints.version}',
                       style: TextStyle(fontFamily: fontFamily)),
                 ),

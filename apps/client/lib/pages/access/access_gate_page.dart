@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kazumi/pages/settings/server_settings_dialog.dart';
 import 'package:kazumi/services/access/access_gate_service.dart';
+import 'package:kazumi/services/server/server_config_service.dart';
 
 class AccessGateView extends StatelessWidget {
   const AccessGateView({
@@ -54,6 +55,7 @@ class _AccessGatePageState extends State<AccessGatePage> {
   @override
   void initState() {
     super.initState();
+    _error = AccessGateService.lastError;
     _passwordController.addListener(_normalizePasswordInput);
   }
 
@@ -118,13 +120,32 @@ class _AccessGatePageState extends State<AccessGatePage> {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     if (!mounted) return;
     final changed = await showServerSettingsDialog(context);
-    if (!mounted || changed != true) return;
+    if (!mounted || changed == null) return;
     _passwordController.clear();
     _lastPasswordText = '';
     _lastPasswordEditWasDeletion = false;
     setState(() {
       _unlocking = false;
-      _error = '服务器已切换，请输入新服务器的访问密码';
+      _error = '';
+    });
+    await _connect();
+  }
+
+  Future<void> _connect() async {
+    if (_unlocking) return;
+    setState(() {
+      _unlocking = true;
+      _error = '';
+    });
+    final connected = await AccessGateService.checkAccess();
+    if (!mounted) return;
+    if (connected) {
+      widget.onUnlocked();
+      return;
+    }
+    setState(() {
+      _unlocking = false;
+      _error = AccessGateService.lastError;
     });
   }
 
@@ -138,6 +159,7 @@ class _AccessGatePageState extends State<AccessGatePage> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final requiresPassword = AccessGateService.requiresPassword;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -158,7 +180,9 @@ class _AccessGatePageState extends State<AccessGatePage> {
                         borderRadius: BorderRadius.circular(19),
                       ),
                       child: Icon(
-                        Icons.lock_rounded,
+                        requiresPassword
+                            ? Icons.lock_rounded
+                            : Icons.dns_rounded,
                         color: colorScheme.onPrimary,
                         size: 30,
                       ),
@@ -166,7 +190,7 @@ class _AccessGatePageState extends State<AccessGatePage> {
                   ),
                   const SizedBox(height: 28),
                   Text(
-                    '访问验证',
+                    requiresPassword ? '访问验证' : '连接 AniWorld',
                     style: Theme.of(context)
                         .textTheme
                         .headlineMedium
@@ -174,13 +198,18 @@ class _AccessGatePageState extends State<AccessGatePage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '此应用仅限授权访问。请输入 18 位访问密码后继续。',
+                    requiresPassword
+                        ? '此服务器需要访问密码，请输入后继续。'
+                        : '设置自己部署的 AniWorld 服务器地址，连接后即可使用。',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                           height: 1.55,
                         ),
                   ),
                   const SizedBox(height: 18),
+                  Text(ServerConfigService.currentAddress,
+                      style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: _unlocking ? null : _configureServer,
                     icon: const Icon(Icons.dns_outlined),
@@ -190,37 +219,43 @@ class _AccessGatePageState extends State<AccessGatePage> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: false,
-                    enabled: !_unlocking,
-                    autofocus: false,
-                    keyboardType: TextInputType.text,
-                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[ -~]')),
-                      LengthLimitingTextInputFormatter(18),
-                    ],
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    enableIMEPersonalizedLearning: false,
-                    textCapitalization: TextCapitalization.none,
-                    smartDashesType: SmartDashesType.disabled,
-                    smartQuotesType: SmartQuotesType.disabled,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _unlock(),
-                    decoration: InputDecoration(
-                      labelText: '访问密码',
-                      helperText: '密码默认明文显示，避免部分安卓输入法删除后重复追加字符。',
-                      counterText: '',
-                      prefixIcon: const Icon(Icons.key_rounded),
-                      errorText: _error.isEmpty ? null : _error,
-                      border: const OutlineInputBorder(),
+                  if (requiresPassword)
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      enabled: !_unlocking,
+                      autofocus: false,
+                      keyboardType: TextInputType.text,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[ -~]')),
+                        LengthLimitingTextInputFormatter(18),
+                      ],
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      enableIMEPersonalizedLearning: false,
+                      textCapitalization: TextCapitalization.none,
+                      smartDashesType: SmartDashesType.disabled,
+                      smartQuotesType: SmartQuotesType.disabled,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _unlock(),
+                      decoration: InputDecoration(
+                        labelText: '访问密码',
+                        helperText: '由服务器部署者设置，与账户登录密码不同。',
+                        counterText: '',
+                        prefixIcon: const Icon(Icons.key_rounded),
+                        border: const OutlineInputBorder(),
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 18),
+                  if (_error.isNotEmpty) ...[
+                    Text(_error, style: TextStyle(color: colorScheme.error)),
+                    const SizedBox(height: 12),
+                  ],
                   FilledButton.icon(
-                    onPressed: _unlocking ? null : _unlock,
+                    onPressed: _unlocking
+                        ? null
+                        : (requiresPassword ? _unlock : _connect),
                     icon: _unlocking
                         ? const SizedBox(
                             width: 20,
@@ -230,11 +265,17 @@ class _AccessGatePageState extends State<AccessGatePage> {
                             ),
                           )
                         : const Icon(Icons.lock_open_rounded),
-                    label: Text(_unlocking ? '正在验证…' : '解锁 AniWorld'),
+                    label: Text(_unlocking
+                        ? '正在连接…'
+                        : (requiresPassword ? '验证并进入' : '连接服务器')),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(54),
                     ),
                   ),
+                  if (requiresPassword)
+                    TextButton(
+                        onPressed: _unlocking ? null : _connect,
+                        child: const Text('重新检查服务器连接')),
                 ],
               ),
             ),
@@ -265,7 +306,7 @@ class AccessGateLoadingPage extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                'AniWorld 正在验证访问权限',
+                'AniWorld 正在连接服务器',
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium

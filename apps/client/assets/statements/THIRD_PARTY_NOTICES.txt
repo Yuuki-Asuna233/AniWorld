@@ -1,0 +1,24 @@
+AniWorld Community 2.2.10
+Modified by the AniWorld project, 2026-10-13.
+Source: https://github.com/Yuuki-Asuna233/AniWorld
+
+This client is derived from Kazumi and distributed under GPL-3.0.
+Upstream: https://github.com/Predidit/Kazumi
+AniWorld modifies the catalogue, accounts, playback, storage, Agent integration,
+access controls and user interface. See the public source and its Git history.
+
+The vendored Dart media-kit components retain their respective MIT licenses.
+Their native mpv / FFmpeg dependencies have their own GPL / LGPL terms;
+the Dart wrapper license does not replace those native component licenses.
+Android native artifacts: Predidit/libmpv-android-video-build release v1.2.6.
+Windows native artifacts: see packages/libs/windows/media_kit_libs_windows_video.
+Native component source and build information:
+https://github.com/Predidit/libmpv-android-video-build
+https://github.com/Predidit/libmpv-win32-video-cmake
+https://github.com/mpv-player/mpv
+https://ffmpeg.org/legal.html
+
+Bundled Anime4K shaders retain their MIT license and bloc97 copyright notices.
+Rule definitions are derived from KazumiRules:
+https://github.com/Predidit/KazumiRules
+Other Flutter dependencies are listed separately in this license viewer.

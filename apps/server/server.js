@@ -17,7 +17,7 @@ const { sendVerificationEmail } = require('./src/services/email');
 const { cache } = require('./src/services/cache');
 
 const { createAuthMiddleware, requireAuth } = require('./src/middleware/auth');
-const { createAccessGate } = require('./src/middleware/access-gate');
+const { createAccessGate, parseAccessGateEnabled } = require('./src/middleware/access-gate');
 const { createDurabilityMiddleware } = require('./src/middleware/durability');
 
 const { mountVideoRoutes } = require('./src/routes/video');
@@ -44,6 +44,7 @@ if (!JWT_SECRET || JWT_SECRET.length < 32 || /replace-with|anime_site_jwt_secret
 const JWT_EXPIRES = '7d';
 const authMiddleware = createAuthMiddleware(JWT_SECRET, database);
 const accessGate = createAccessGate({
+  enabled: parseAccessGateEnabled(process.env.ACCESS_GATE_ENABLED),
   jwt: require('jsonwebtoken'),
   password: process.env.ACCESS_GATE_PASSWORD,
   secret: process.env.ACCESS_GATE_SECRET,

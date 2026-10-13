@@ -39,7 +39,7 @@ async function main() {
     assert.strictEqual(response.headers.get('location'), '/access.html?next=%2Finside');
 
     response = await fetch(`${base}/api/access/status`);
-    assert.deepStrictEqual(await response.json(), { unlocked: false });
+    assert.deepStrictEqual(await response.json(), { enabled: true, unlocked: false });
 
     response = await fetch(`${base}/api/access/unlock`, {
       method: 'POST',

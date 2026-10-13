@@ -518,6 +518,11 @@ class SettingsKeys {
     '',
     group: SettingGroup.misc,
   );
+  static const accessGatePublicServer = SettingKey<String>(
+    'accessGatePublicServer',
+    '',
+    group: SettingGroup.misc,
+  );
   static const serverBaseUrl = SettingKey<String>(
     'serverBaseUrl',
     ApiEndpoints.defaultSelfBackend,
@@ -620,6 +625,7 @@ class SettingsKeys {
     aniworldToken,
     aniworldUserJson,
     accessGateToken,
+    accessGatePublicServer,
     serverBaseUrl,
   ];
 
