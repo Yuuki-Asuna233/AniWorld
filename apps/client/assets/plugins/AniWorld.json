@@ -1,0 +1,21 @@
+{
+  "api": "7",
+  "type": "anime",
+  "name": "AniWorld",
+  "version": "1.0.0",
+  "muliSources": true,
+  "useWebview": true,
+  "useNativePlayer": true,
+  "usePost": false,
+  "useLegacyParser": false,
+  "adBlocker": false,
+  "userAgent": "",
+  "baseURL": "http://127.0.0.1:3000",
+  "searchURL": "http://127.0.0.1:3000/kazumi/source/search?keyword=@keyword",
+  "searchList": "//div[@class='search-item']",
+  "searchName": "//a[@class='name']",
+  "searchResult": "//a[@class='name']",
+  "chapterRoads": "//div[@class='road']",
+  "chapterResult": "//a[@class='episode']",
+  "referer": "http://127.0.0.1:3000/"
+}

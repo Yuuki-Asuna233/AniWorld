@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/css/mobile-app.css">
+<title>更新日历 - AniWorld</title>
+<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="common.js"></script>
+<style>
+* { margin:0; box-sizing:border-box; }
+body { background: #0d1117; color: #c9d1d9; font-family:'Segoe UI','PingFang SC',sans-serif; min-height:100vh; }
+
+.header { background: #161b22; border-bottom:1px solid #30363d; padding:12px 24px; display:flex; align-items:center; gap:20px; position:sticky; top:0; z-index:100; flex-wrap:wrap; }
+.header a { color:#e85d04; text-decoration:none; font-weight:700; font-size:20px; }
+.header input { flex:1; min-width:200px; padding:10px 16px; border-radius:24px; border:1px solid #30363d; background: #0d1117; color: #c9d1d9; font-size:15px; outline:none; }
+.header input:focus { border-color: #e85d04; }
+.header nav { display:flex; gap:12px; }
+.header nav a { color: #8b949e; text-decoration:none; font-size:14px; padding:6px 12px; border-radius:6px; }
+.header nav a.on, .header nav a:hover { color:#e85d04; background: #21262d; }
+
+.container { max-width:1400px; margin:0 auto; padding:32px 24px; }
+.page-title { font-size:28px; font-weight:800; margin-bottom:24px; }
+
+.calendar-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; }
+.day-column { background: #161b22; border:1px solid #30363d; border-radius:12px; overflow:hidden; }
+.day-header { background:#1c2128; padding:12px 16px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+.day-header.today { background: #e85d04; color: #fff; }
+.day-header .dot { width:8px; height:8px; border-radius:50%; background: #22c55e; }
+.day-list { padding:8px; min-height:80px; }
+.day-item { display:flex; gap:10px; padding:8px; border-radius:8px; cursor:pointer; transition:.2s; align-items:center; }
+.day-item:hover { background: #21262d; }
+.day-item img { width:44px; height:60px; border-radius:6px; object-fit:cover; flex-shrink:0; }
+.day-item .info { flex:1; min-width:0; }
+.day-item .title { font-size:13px; font-weight:600; color: #e6edf3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.day-item .ep { font-size:11px; color:#22c55e; margin-top:2px; }
+.day-item .score { font-size:12px; color: #ffb703; }
+
+.loading { text-align:center; padding:60px; color: #8b949e; }
+.loading-spinner { width:40px; height:40px; border:3px solid #21262d; border-top:3px solid #e85d04; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+.load-bar-wrap { width:200px; height:4px; background: #21262d; border-radius:2px; margin:12px auto 0; overflow:hidden; }
+.load-bar { height:100%; background:linear-gradient(90deg,#e85d04,#fd7e14); border-radius:2px; animation:loadPulse 1.5s ease-in-out infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes loadPulse { 0%{width:0%;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0%;margin-left:100%} }
+.empty { text-align:center; padding:20px; color: #8b949e; font-size:13px; }
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background: #e85d04;color: #fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:999;animation:slideUp .3s ease;box-shadow: 0 4px 20px rgba(232,93,4,.3)}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/">AniWorld</a>
+  <input type="text" id="headerSearch" placeholder="搜索动漫..." onkeydown="if(event.key==='Enter')search()">
+  <nav>
+    <a href="/">首页</a>
+    <a href="search_anime.html">搜索</a>
+    <a href="calendar.html" class="on">更新日历</a>
+    <a href="categories.html">全部分类</a>
+    <a href="rankings.html">排行榜</a>
+    <a href="my.html">我的</a>
+  </nav></div>
+
+<div class="container">
+  <div class="page-title">📅 更新日历</div>
+  <div class="calendar-grid" id="calendarGrid">
+    <div class="loading" style="grid-column:1/-1"><div class="loading-spinner"></div>加载中...<div class="load-bar-wrap"><div class="load-bar"></div></div></div>
+  </div>
+</div>
+
+<script>
+const dayOrder = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+const today = new Date().getDay();
+const todayName = dayOrder[today === 0 ? 6 : today - 1];
+
+async function loadCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  grid.innerHTML = '<div class="loading" style="grid-column:1/-1"><div class="loading-spinner"></div>加载中...<div class="load-bar-wrap"><div class="load-bar"></div></div></div>';
+
+  try {
+    const r = await fetch('/api/oi/calendar?t=' + Date.now(), { cache: 'no-store' });
+    const data = await r.json();
+
+    if (!data.schedule) {
+      grid.innerHTML = '<div class="empty" style="grid-column:1/-1">暂无数据</div>';
+      return;
+    }
+
+    grid.innerHTML = dayOrder.map(day => {
+      const items = data.schedule[day] || [];
+      const isToday = day === todayName;
+      return `
+        <div class="day-column">
+          <div class="day-header ${isToday ? 'today' : ''}">
+            ${isToday ? '<span class="dot"></span>' : ''}
+            ${day}${isToday ? ' (今天)' : ''}
+            <span style="margin-left:auto;font-size:12px;color:#666">${items.length}部</span>
+          </div>
+          <div class="day-list">
+            ${items.length > 0 ? items.map(a => {
+              const idx = window._animeData.push(a) - 1;
+              return `
+                <div class="day-item" onclick="playAnime(window._animeData[${idx}])">
+                  <img src="${a.image || ''}" alt="" onerror="this.style.display='none'">
+                  <div class="info">
+                    <div class="title">${escapeHtml(a.title)}</div>
+                    ${a.airingEpisode ? '<div class="ep">📺 第' + a.airingEpisode + '集更新</div>' : ''}
+                  </div>
+                  ${a.score ? '<div class="score">★ ' + a.score + '</div>' : ''}
+                </div>
+              `;
+            }).join('') : '<div class="empty">暂无更新</div>'}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">加载失败</div>';
+  }
+}
+
+loadCalendar();
+</script>
+
+<script src="/js/mobile-app.js" defer></script>
+<script src="/js/anime-agent-config.js" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+</body>
+</html>

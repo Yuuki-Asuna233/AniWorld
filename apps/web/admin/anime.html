@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>番剧管理 · AniWorld</title>
+  <link rel="stylesheet" href="/admin/anime.css?v=20261009T100353Z">
+  <link rel="stylesheet" href="/admin/anime-filters.css?v=filters-1">
+  <link rel="stylesheet" href="/admin/anime-pagination.css?v=1">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">ANIWORLD ADMIN</p>
+        <h1>番剧数据管理</h1>
+        <p class="subtitle">修正中文名称、OI 匹配信息和基础播出数据。保存后会立即写入服务器数据库。</p>
+      </div>
+      <nav class="top-actions">
+        <a href="/admin/agent.html">Agent 管理</a>
+        <button id="refresh" class="button">刷新</button>
+      </nav>
+    </header>
+
+    <div id="notice" class="notice" hidden></div>
+
+    <section class="panel toolbar-panel">
+      <form id="searchForm" class="search-form">
+        <div class="search-row">
+          <input id="query" type="search" placeholder="搜索中文名、原名、OI 名称或 AniList ID">
+          <button class="button primary" type="submit">搜索</button>
+        </div>
+        <div class="filter-row">
+          <label>播出年份<input id="year" type="number" min="1900" max="2100" step="1" placeholder="全部年份"></label>
+          <label>播出月份<select id="month"><option value="">全部月份</option><option value="1">1 月</option><option value="2">2 月</option><option value="3">3 月</option><option value="4">4 月</option><option value="5">5 月</option><option value="6">6 月</option><option value="7">7 月</option><option value="8">8 月</option><option value="9">9 月</option><option value="10">10 月</option><option value="11">11 月</option><option value="12">12 月</option></select></label>
+          <label>播放状态<select id="filterStatus"><option value="">全部状态</option><option value="NOT_YET_RELEASED">未上映</option><option value="RELEASING">连载中</option><option value="FINISHED">已完结</option><option value="CANCELLED">已取消</option><option value="HIATUS">暂停</option></select></label>
+          <button class="button filter-submit" type="submit">应用筛选</button>
+        </div>
+      </form>
+      <span id="summary" class="muted"></span>
+    </section>
+
+    <section class="workspace">
+      <section class="panel list-panel">
+        <div class="panel-heading">
+          <div><h2>番剧列表</h2><p>点击一行编辑数据</p></div>
+          <div class="pager" aria-label="番剧列表分页">
+            <button id="first" class="button small">首页</button>
+            <button id="previous" class="button small">上一页</button>
+            <span id="pageInfo" class="page-status" aria-live="polite">第 1 页 / 共 1 页</span>
+            <span class="page-jump">
+              <label class="sr-only" for="jumpPage">跳转页码</label>
+              <input id="jumpPage" class="page-input" type="number" min="1" value="1" inputmode="numeric" aria-label="跳转页码">
+              <button id="jump" class="button small primary">跳转</button>
+            </span>
+            <button id="next" class="button small">下一页</button>
+            <button id="last" class="button small">尾页</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>中文名称</th><th>OI 名称</th><th>索引</th><th>集数</th><th>状态</th></tr></thead>
+            <tbody id="animeRows"><tr><td colspan="6" class="empty">正在加载…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel editor-panel">
+        <div class="panel-heading"><div><h2>编辑番剧</h2><p id="editorHint">请先从左侧选择一条番剧</p></div></div>
+        <form id="editorForm" hidden>
+          <div class="readonly-grid">
+            <label>AniList ID<input id="anilistId" readonly></label>
+            <label>原名<input id="titleRomaji" readonly></label>
+            <label>日文名<input id="titleNative" readonly></label>
+          </div>
+          <label>中文名称<input id="titleChinese" maxlength="200"></label>
+          <label>OI 名称<input id="oiMsg" maxlength="200"></label>
+          <div class="field-grid">
+            <label>OI 索引<input id="oiIndex" type="number" min="1" step="1"></label>
+            <label>集数<input id="episodes" type="number" min="0" step="1"></label>
+            <label>状态<select id="status">
+              <option value="NOT_YET_RELEASED">未上映</option>
+              <option value="RELEASING">连载中</option>
+              <option value="FINISHED">已完结</option>
+              <option value="CANCELLED">已取消</option>
+              <option value="HIATUS">暂停</option>
+            </select></label>
+          </div>
+          <div class="form-actions"><button id="save" class="button primary" type="submit">保存修改</button><button id="reset" class="button" type="button">恢复原值</button></div>
+        </form>
+        <div id="history" class="history empty">选择番剧后显示修改记录</div>
+      </section>
+    </section>
+  </main>
+  <script src="/js/site-utils.js?v=20261011T043709Z"></script>
+  <script src="/admin/anime.js?v=pager-1"></script>
+</body>
+</html>

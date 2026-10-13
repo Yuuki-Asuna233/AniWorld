@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent 管理台 · AniWorld</title>
+  <link rel="stylesheet" href="/admin/agent.css">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">ANIWORLD / OBSERVABILITY</p>
+        <h1>Agent 管理台</h1>
+        <p class="subtitle">查看 Agent 的运行状态、工具调用和用户反馈。展示的是统计信号，不直接等同于模型准确率。</p>
+      </div>
+      <div class="toolbar">
+        <a href="/admin/anime.html" class="admin-link">番剧管理</a>
+        <select id="range" aria-label="统计时间范围">
+          <option value="1">最近 24 小时</option>
+          <option value="7" selected>最近 7 天</option>
+          <option value="30">最近 30 天</option>
+          <option value="90">最近 90 天</option>
+        </select>
+        <button id="refresh" class="button primary" type="button">刷新数据</button>
+      </div>
+    </header>
+
+    <section id="notice" class="notice" hidden></section>
+
+    <section class="metric-grid" aria-label="核心指标">
+      <article class="metric"><span>请求数</span><strong id="requests">—</strong><small id="requestsHint">—</small></article>
+      <article class="metric"><span>成功率</span><strong id="successRate">—</strong><small>模型完成且未异常</small></article>
+      <article class="metric"><span>平均响应</span><strong id="latency">—</strong><small>包含模型和工具耗时</small></article>
+      <article class="metric"><span>模型调用</span><strong id="modelCalls">—</strong><small id="modelCallsHint">多轮调用总数</small></article>
+      <article class="metric"><span>Token 消耗</span><strong id="tokens">—</strong><small id="tokensHint">输入 / 输出</small></article>
+      <article class="metric"><span>工具调用</span><strong id="toolCalls">—</strong><small id="fallbacks">降级 0 次</small></article>
+      <article class="metric"><span>回答反馈</span><strong id="answerQuality">—</strong><small id="answerFeedbackHint">暂无用户反馈</small></article>
+      <article class="metric"><span>推荐点击率</span><strong id="recommendRate">—</strong><small id="recommendHint">基于推荐曝光与点击</small></article>
+    </section>
+
+    <section class="panel trend-panel">
+      <div class="panel-heading"><div><h2>运行趋势</h2><p>请求量、成功量和平均响应时间</p></div><span id="updatedAt" class="muted">—</span></div>
+      <div id="trend" class="trend-list"><div class="empty">正在加载…</div></div>
+    </section>
+
+    <section class="chart-grid" aria-label="模型与状态分析">
+      <section class="panel chart-panel"><div class="panel-heading"><div><h2>运行状态</h2><p>成功、错误和降级请求</p></div></div><div id="statusChart" class="donut-layout"></div></section>
+      <section class="panel chart-panel"><div class="panel-heading"><div><h2>模型调用分布</h2><p>按模型统计实际调用次数</p></div></div><div id="modelChart" class="donut-layout"></div></section>
+      <section class="panel chart-panel"><div class="panel-heading"><div><h2>Token 消耗</h2><p>输入与输出 Token 按模型拆分</p></div></div><div id="tokenChart" class="token-chart"></div></section>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading"><div><h2>上下文缓存</h2><p>按调用阶段统计输入缓存；覆盖为已取得缓存计数的调用数。首 Token／正文耗时从对应模型请求开始计算，— 表示未知。</p></div></div>
+      <div class="table-scroll"><table><thead><tr><th>模型</th><th>阶段</th><th>调用 / 覆盖</th><th>输入命中率</th><th>命中 / 未命中 Token</th><th>平均首 Token</th><th>平均首段正文</th></tr></thead><tbody id="cacheUsage"></tbody></table></div>
+    </section>
+
+    <div class="two-columns">
+      <section class="panel">
+        <div class="panel-heading"><div><h2>工具使用</h2><p>调用量和执行成功率</p></div></div>
+        <div class="table-scroll"><table><thead><tr><th>工具</th><th>调用</th><th>成功率</th><th>平均耗时</th></tr></thead><tbody id="tools"></tbody></table></div>
+      </section>
+      <section class="panel">
+        <div class="panel-heading"><div><h2>推荐反馈</h2><p>推荐行为漏斗，不代表严格准确率</p></div></div>
+        <div id="recommendationFunnel" class="funnel"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="panel-heading"><div><h2>最近运行</h2><p>点击一行查看该次请求的工具链和反馈</p></div></div>
+      <div class="table-scroll"><table class="runs-table"><thead><tr><th>时间</th><th>用户</th><th>状态</th><th>耗时</th><th>轮次</th><th>工具</th><th>推荐卡片</th></tr></thead><tbody id="runs"></tbody></table></div>
+    </section>
+  </main>
+
+  <dialog id="runDialog">
+    <form method="dialog" class="dialog-card">
+      <button class="dialog-close" value="close" aria-label="关闭">×</button>
+      <div id="runDetail"><div class="empty">正在加载…</div></div>
+    </form>
+  </dialog>
+  <script src="/js/site-utils.js?v=20261011T043709Z"></script>
+  <script src="/admin/agent.js?v=20261011-cache-v1"></script>
+</body>
+</html>

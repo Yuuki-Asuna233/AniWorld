@@ -1,0 +1,7 @@
+.search-form{display:grid;gap:10px;flex:1;max-width:1050px}
+.search-row{display:flex;gap:10px}
+.search-row input{flex:1}
+.filter-row{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.filter-row label{flex:1;min-width:145px;margin:0}
+.filter-submit{align-self:flex-end}
+@media(max-width:700px){.search-row{display:grid;grid-template-columns:1fr}.filter-row{display:grid;grid-template-columns:1fr}.filter-submit{width:100%}}

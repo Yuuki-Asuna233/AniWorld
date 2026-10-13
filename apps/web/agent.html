@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>白羽 - AniWorld</title>
+<link rel="stylesheet" href="/css/mobile-app.css">
+<style>
+*{box-sizing:border-box;margin:0}
+body{min-height:100vh;background:#0d1728;color:#f0f6fc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;overflow:hidden}
+.agent-shell{position:fixed;inset:0;background:radial-gradient(circle at 50% 0,rgba(232,93,4,.18),transparent 36%),#0d1728}
+.agent-top{position:fixed;left:0;right:0;top:0;z-index:2;height:calc(58px + env(safe-area-inset-top,0px));padding:calc(12px + env(safe-area-inset-top,0px)) 16px 10px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,23,40,.82);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06)}
+.agent-back{width:38px;height:38px;border:0;border-radius:50%;background:#ff6500;color:#fff;font-size:28px;line-height:1;display:grid;place-items:center}
+.agent-title{position:absolute;left:50%;transform:translateX(-50%);font-size:18px;font-weight:900;color:#ff6500;letter-spacing:.04em}
+.agent-hint{position:fixed;left:18px;right:18px;top:calc(72px + env(safe-area-inset-top,0px));text-align:center;color:#8b949e;font-size:13px;line-height:1.7}
+anime-agent{position:fixed!important;inset:0!important;right:auto!important;bottom:auto!important;z-index:10!important}
+</style>
+</head>
+<body class="agent-page">
+<div class="agent-shell"></div>
+<header class="agent-top">
+  <button class="agent-back" type="button" onclick="history.length>1?history.back():location.href='/'">‹</button>
+  <div class="agent-title">白羽酱</div>
+</header>
+<p class="agent-hint">正在唤醒白羽酱...</p>
+<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="/js/mobile-app.js" defer></script>
+<script src="/js/anime-agent-config.js" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+<script>
+function openAgentPage(){
+  const el = document.querySelector('anime-agent');
+  if (el && typeof el.toggle === 'function') {
+    el.toggle(true);
+    document.querySelector('.agent-hint')?.remove();
+  } else {
+    setTimeout(openAgentPage, 80);
+  }
+}
+window.addEventListener('DOMContentLoaded', openAgentPage);
+</script>
+</body>
+</html>

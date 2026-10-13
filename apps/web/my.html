@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/css/mobile-app.css">
+<title>我的 - AniWorld</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #111118;
+  --bg-input: #151520;
+  --border: #1a1a2e;
+  --accent: #e85d04;
+  --accent-hover: #dc5200;
+  --text: #e0e0e0;
+  --text-dim: #999;
+  --green: #22c55e;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --radius: 10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;min-height:100vh}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#111}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+/* Header */
+header{background:#0d0d15ee;border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.header-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:16px}
+.logo{font-size:22px;font-weight:800;color:#e85d04;text-decoration:none}
+.logo span{color: #fff}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav a{color:#999;text-decoration:none;padding:6px 12px;border-radius:8px;font-size:13px;transition:.2s;white-space:nowrap}
+nav a:hover,nav a.active{color: #fff;background:#1a1a2e}
+
+/* Main */
+.container{max-width:1000px;margin:0 auto;padding:24px 20px}
+
+/* Auth Card */
+.auth-wrap{display:flex;justify-content:center;padding-top:40px}
+.auth-card{background:#111118;border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:440px}
+.auth-card h2{font-size:24px;margin-bottom:8px;color: #fff}
+.auth-card .sub{color:var(--text-dim);font-size:13px;margin-bottom:28px}
+.auth-card .form-group{margin-bottom:18px}
+.auth-card label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px}
+.auth-card input{width:100%;padding:10px 14px;background:#0d1117;border:1px solid var(--border);border-radius:8px;color: #fff;font-size:14px;outline:none;transition:.2s}
+.auth-card input:focus{border-color:#e85d04}
+.auth-card .input-row{display:flex;gap:10px}
+.auth-card .input-row input{flex:1}
+.auth-card .btn{width:100%;padding:11px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.auth-card .btn-primary{background:#e85d04;color: #fff}
+.auth-card .btn-primary:hover:not(:disabled){background:#dc5200}
+.auth-card .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.auth-card .btn-outline{background:transparent;color:#e85d04;border:1px solid #e85d04}
+.auth-card .btn-outline:hover{background:rgba(232,93,4,.1)}
+.auth-card .btn-sm{padding:10px 16px;width:auto;font-size:13px;white-space:nowrap}
+.auth-card .toggle-link{text-align:center;margin-top:16px;font-size:13px;color:var(--text-dim)}
+.auth-card .toggle-link a{color:#e85d04;cursor:pointer;text-decoration:none}
+.auth-card .toggle-link a:hover{text-decoration:underline}
+.auth-card .code-timer{font-size:12px;color:#e85d04;margin-top:4px}
+.auth-card .error-msg{color:var(--red);font-size:13px;margin-top:4px;min-height:18px}
+.auth-card .success-msg{color:var(--green);font-size:13px;margin-top:4px;min-height:18px}
+
+/* Avatar upload area */
+.avatar-upload{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.avatar-preview{width:64px;height:64px;border-radius:50%;border:2px solid var(--border);object-fit:cover;background:#0d1117;flex-shrink:0}
+.avatar-upload .avatar-actions{display:flex;flex-direction:column;gap:6px}
+.avatar-upload .avatar-url-input{width:260px;padding:8px 12px;background:#0d1117;border:1px solid var(--border);border-radius:6px;color: #fff;font-size:13px;outline:none}
+.avatar-upload .avatar-url-input:focus{border-color:#e85d04}
+.avatar-upload .avatar-hint{font-size:11px;color:var(--text-dim)}
+
+/* User Center */
+.user-center{display:flex;flex-direction:column;gap:24px}
+.user-header{display:flex;align-items:center;gap:20px;padding:24px;background:#111118;border:1px solid var(--border);border-radius:16px}
+.user-avatar{width:80px;height:80px;border-radius:50%;border:3px solid #e85d04;object-fit:cover;background:#0d1117}
+.user-info{flex:1}
+.user-info h2{font-size:22px;color: #fff;margin-bottom:4px}
+.user-info .email{font-size:13px;color:var(--text-dim)}
+.user-actions{display:flex;gap:8px}
+.user-actions .btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s}
+.btn-edit{background:#e85d04;color: #fff}
+.btn-edit:hover{background:#dc5200}
+.btn-logout{background:transparent;color:var(--text-dim);border:1px solid var(--border)} 
+.btn-logout:hover{border-color:var(--red);color:var(--red)}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;background:#111118;border:1px solid var(--border);border-radius:12px;padding:4px}
+.tab-btn{flex:1;padding:10px 16px;background:transparent;border:none;border-radius:8px;color:var(--text-dim);font-size:14px;cursor:pointer;transition:.2s}
+.tab-btn:hover{color: #fff;background:rgba(255,255,255,.05)}
+.tab-btn.active{background:#e85d04;color: #fff}
+
+/* Cards grid for favorites & history */
+.content-grid{display:flex;flex-direction:column;gap:12px}
+.fav-card,.hist-card{display:flex;gap:14px;padding:14px;background:#111118;border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:.2s;text-decoration:none;color:inherit;align-items:center}
+.hist-card{position:relative;overflow:hidden;padding-right:112px}
+.fav-card:hover,.hist-card:hover{border-color:#e85d04;transform:translateY(-1px);box-shadow:0 4px 20px rgba(232,93,4,.1)}
+.fav-card img,.hist-card img{width:80px;height:112px;object-fit:cover;border-radius:8px;flex-shrink:0;background:#0d1117}
+.fav-card .card-info,.hist-card .card-info{flex:1;min-width:0}
+.fav-card .card-title,.hist-card .card-title{font-size:16px;font-weight:600;color: #fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fav-card .card-meta,.hist-card .card-meta{font-size:12px;color:var(--text-dim)}
+.hist-card .card-progress{display:flex;align-items:center;gap:8px;margin-top:6px}
+.hist-card .card-progress-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;max-width:200px}
+.hist-card .card-progress-bar .fill{height:100%;background:#e85d04;border-radius:2px}
+.hist-card .card-progress-text{font-size:12px;color:#e85d04;white-space:nowrap}
+.fav-card .card-time,.hist-card .card-time{font-size:11px;color:var(--text-dim);text-align:right;white-space:nowrap}
+.hist-delete-btn{position:absolute;right:14px;bottom:12px;background:rgba(239,68,68,.12);color:#ff8b8b;border:1px solid rgba(239,68,68,.35);border-radius:6px;padding:5px 10px;font-size:12px;line-height:1;cursor:pointer;transition:.2s;opacity:.78}
+.hist-delete-btn:hover,.hist-delete-btn:focus{background:#ef4444;color:#fff;border-color:#ef4444;opacity:1;outline:none}
+.hist-card.swipe-hint{transform:translateX(-10px);border-color:#ef4444}
+
+/* Profile Edit Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#111118;border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:420px}
+.modal h3{font-size:20px;color: #fff;margin-bottom:20px}
+.modal .form-group{margin-bottom:16px}
+.modal label{display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px}
+.modal input{width:100%;padding:10px 14px;background:#0d1117;border:1px solid var(--border);border-radius:8px;color: #fff;font-size:14px;outline:none}
+.modal input:focus{border-color:#e85d04}
+.modal .modal-actions{display:flex;gap:10px;margin-top:24px;justify-content:flex-end}
+.modal .btn{padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none}
+.modal .btn-cancel{background:transparent;color:var(--text-dim);border:1px solid var(--border)}
+.modal .btn-save{background:#e85d04;color: #fff}
+.modal .btn-save:hover{background:#dc5200}
+
+/* Loading & Empty */
+.loading{text-align:center;padding:40px;color:var(--text-dim)}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:#e85d04;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{padding:40px;text-align:center;color:var(--text-dim)}
+.empty .icon{font-size:40px;margin-bottom:8px}
+.empty p{font-size:14px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#e85d04;color: #fff;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:300;animation:slideUp .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+@media(max-width:768px){
+  .auth-card{padding:24px}
+  .user-header{flex-direction:column;text-align:center}
+  .user-actions{justify-content:center}
+  .fav-card img,.hist-card img{width:60px;height:84px}
+  .hist-card{padding-right:92px}
+  .hist-delete-btn{right:10px;bottom:10px;padding:5px 8px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">Ani<span>World</span></a>
+    <nav>
+      <a href="index.html">首页</a>
+      <a href="search_anime.html">搜索</a>
+      <a href="calendar.html">更新日历</a>
+      <a href="categories.html">全部分类</a>
+      <a href="rankings.html">排行榜</a>
+      <a href="my.html" class="active">我的</a>
+    </nav>
+  </div>
+</header>
+
+<div class="container" id="app"></div>
+
+<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="/js/my-page.js?v=20261011T043709Z"></script>
+<script src="/js/mobile-app.js" defer></script>
+<script src="/js/anime-agent-config.js" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+</body>
+</html>

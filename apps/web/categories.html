@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/css/mobile-app.css">
+<title>全部分类 - AniWorld</title>
+<link rel="preconnect" href="https://oiapi.net">
+<link rel="preconnect" href="https://graphql.anilist.co">
+<link rel="preconnect" href="https://trace.moe">
+<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="common.js"></script>
+<style>
+* { margin:0; box-sizing:border-box; }
+body { background: #0d1117; color: #c9d1d9; font-family:'Segoe UI','PingFang SC',sans-serif; min-height:100vh; }
+
+.header { background: #161b22; border-bottom:1px solid #30363d; padding:12px 24px; display:flex; align-items:center; gap:20px; position:sticky; top:0; z-index:100; flex-wrap:wrap; }
+.header a { color:#e85d04; text-decoration:none; font-weight:700; font-size:20px; }
+.header input { flex:1; min-width:200px; padding:10px 16px; border-radius:24px; border:1px solid #30363d; background: #0d1117; color: #c9d1d9; font-size:15px; outline:none; }
+.header input:focus { border-color: #e85d04; }
+.header nav { display:flex; gap:12px; }
+.header nav a { color: #8b949e; text-decoration:none; font-size:14px; padding:6px 12px; border-radius:6px; }
+.header nav a.on, .header nav a:hover { color:#e85d04; background: #21262d; }
+
+.container { max-width:1400px; margin:0 auto; padding:32px 24px; }
+.page-title { font-size:28px; font-weight:800; margin-bottom:24px; }
+
+.filter-section { background: #161b22; border:1px solid #30363d; border-radius:12px; padding:20px; margin-bottom:32px; }
+.filter-section h3 { font-size:16px; margin-bottom:12px; color: #e6edf3; }
+.filter-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.filter-row:last-child { margin-bottom:0; }
+.filter-btn { background: #21262d; border:1px solid #30363d; color: #8b949e; padding:6px 14px; border-radius:20px; cursor:pointer; font-size:13px; transition:.2s; }
+.filter-btn:hover { border-color: #e85d04; color:#e85d04; }
+.filter-btn.on { background: #e85d04; color: #fff; border-color: #e85d04; }
+
+.anime-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:20px; }
+.anime-card { background: #161b22; border-radius:12px; overflow:hidden; border:1px solid #30363d; transition:.3s; cursor:pointer; color:inherit; }
+.anime-card:hover { transform:translateY(-4px); border-color: #e85d04; box-shadow: 0 8px 30px rgba(232,93,4,.15); }
+.anime-card .img-wrap { position:relative; padding-top:140%; background: #21262d; overflow:hidden; }
+.anime-card .img-wrap img { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; transition:.4s; }
+.anime-card:hover .img-wrap img { transform:scale(1.05); }
+.anime-card .img-wrap .status-badge { position:absolute; right:8px; bottom:8px; background:rgba(13,17,23,.82); color:#f0f6fc; padding:3px 7px; border-radius:5px; font-size:11px; font-weight:700; line-height:1.2; backdrop-filter:blur(6px); }
+.anime-card .info { padding:12px; }
+.anime-card .info h3 { font-size:14px; font-weight:600; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+.loading { text-align:center; padding:60px; color: #8b949e; }
+.loading-spinner { width:40px; height:40px; border:3px solid #21262d; border-top:3px solid #e85d04; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+.load-bar-wrap { width:200px; height:4px; background: #21262d; border-radius:2px; margin:12px auto 0; overflow:hidden; }
+.load-bar { height:100%; background:linear-gradient(90deg,#e85d04,#fd7e14); border-radius:2px; animation:loadPulse 1.5s ease-in-out infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes loadPulse { 0%{width:0%;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0%;margin-left:100%} }
+.empty { text-align:center; padding:60px; color: #8b949e; grid-column:1/-1; }
+.empty-icon { font-size:48px; margin-bottom:12px; }
+
+/* 分页按钮 */
+.pagination { display:flex; justify-content:center; align-items:center; gap:12px; margin-top:32px; padding:0 24px 20px; }
+.pagination .load-more { background:linear-gradient(135deg,#e85d04,#fd7e14); color: #fff; border:none; padding:14px 48px; border-radius:28px; cursor:pointer; font-size:16px; font-weight:700; transition:.3s; }
+.pagination .load-more:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(232,93,4,.4); }
+
+/* Mobile: smaller cards */
+@media(max-width:768px){
+  .anime-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+}
+.pagination .load-more:disabled { background: #21262d; color: #666; cursor:not-allowed; transform:none; box-shadow:none; }
+.pagination .counter { color: #8b949e; font-size:13px; }
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background: #e85d04;color: #fff;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:999;animation:slideUp .3s ease;box-shadow: 0 4px 20px rgba(232,93,4,.3)}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/">AniWorld</a>
+  <input type="text" id="headerSearch" placeholder="搜索动漫..." onkeydown="if(event.key==='Enter')search()">
+  <nav>
+    <a href="/">首页</a>
+    <a href="search_anime.html">搜索</a>
+    <a href="calendar.html">更新日历</a>
+    <a href="categories.html" class="on">全部分类</a>
+    <a href="rankings.html">排行榜</a>
+    <a href="my.html">我的</a>
+  </nav></div>
+
+<div class="container">
+  <div class="page-title">🗂️ 全部分类</div>
+
+  <div class="filter-section">
+    <h3>按类型</h3>
+    <div class="filter-row" id="genreRow">
+      <button class="filter-btn on" onclick="filterGenre('', this)">全部</button>
+    </div>
+    <h3>按年份</h3>
+    <div class="filter-row" id="yearRow">
+      <button class="filter-btn on" onclick="filterYear('', this)">全部</button>
+      <button class="filter-btn" onclick="filterYear('2026', this)">2026</button>
+      <button class="filter-btn" onclick="filterYear('2025', this)">2025</button>
+      <button class="filter-btn" onclick="filterYear('2024', this)">2024</button>
+      <button class="filter-btn" onclick="filterYear('2023', this)">2023</button>
+      <button class="filter-btn" onclick="filterYear('2022', this)">2022</button>
+      <button class="filter-btn" onclick="filterYear('2021', this)">2021</button>
+      <button class="filter-btn" onclick="filterYear('2020', this)">2020</button>
+      <button class="filter-btn" onclick="filterYear('2019', this)">2019</button>
+      <button class="filter-btn" onclick="filterYear('2018', this)">2018</button>
+      <button class="filter-btn" onclick="filterYear('2017', this)">2017</button>
+      <button class="filter-btn" onclick="filterYear('2016', this)">2016</button>
+      <button class="filter-btn" onclick="filterYear('2015', this)">2015</button>
+      <button class="filter-btn" onclick="filterYear('2014', this)">2014</button>
+      <button class="filter-btn" onclick="filterYear('2013', this)">2013</button>
+      <button class="filter-btn" onclick="filterYear('2012', this)">2012</button>
+      <button class="filter-btn" onclick="filterYear('2011', this)">2011</button>
+      <button class="filter-btn" onclick="filterYear('2010', this)">2010</button>
+    </div>
+    <h3>按月份</h3>
+    <div class="filter-row" id="monthRow">
+      <button class="filter-btn on" onclick="filterMonth('', this)">全部月份</button>
+      <button class="filter-btn" onclick="filterMonth('1', this)">1月</button>
+      <button class="filter-btn" onclick="filterMonth('2', this)">2月</button>
+      <button class="filter-btn" onclick="filterMonth('3', this)">3月</button>
+      <button class="filter-btn" onclick="filterMonth('4', this)">4月</button>
+      <button class="filter-btn" onclick="filterMonth('5', this)">5月</button>
+      <button class="filter-btn" onclick="filterMonth('6', this)">6月</button>
+      <button class="filter-btn" onclick="filterMonth('7', this)">7月</button>
+      <button class="filter-btn" onclick="filterMonth('8', this)">8月</button>
+      <button class="filter-btn" onclick="filterMonth('9', this)">9月</button>
+      <button class="filter-btn" onclick="filterMonth('10', this)">10月</button>
+      <button class="filter-btn" onclick="filterMonth('11', this)">11月</button>
+      <button class="filter-btn" onclick="filterMonth('12', this)">12月</button>
+    </div>
+    <h3>按季度</h3>
+    <div class="filter-row" id="seasonRow">
+      <button class="filter-btn on" onclick="filterSeason('', this)">全部</button>
+      <button class="filter-btn" onclick="filterSeason('SPRING', this)">春季</button>
+      <button class="filter-btn" onclick="filterSeason('SUMMER', this)">夏季</button>
+      <button class="filter-btn" onclick="filterSeason('FALL', this)">秋季</button>
+      <button class="filter-btn" onclick="filterSeason('WINTER', this)">冬季</button>
+    </div>
+  </div>
+
+  <div class="anime-grid" id="grid">
+    <div class="loading"><div class="loading-spinner"></div>加载中...</div>
+  </div>
+
+  <div class="pagination" id="pagination" style="display:none;">
+    <span class="counter" id="pageCounter"></span>
+    <button class="load-more" id="loadMoreBtn" onclick="loadMore()">加载更多</button>
+  </div>
+</div>
+
+<script>
+let currentGenre = '';
+let currentYear = '';
+let currentMonth = '';
+let currentSeason = '';
+let currentPage = 1;
+let hasMore = false;
+let totalLoaded = 0;
+let displayedIds = new Set(); // Track displayed anime IDs to prevent duplicates
+
+async function loadGenres() {
+  try {
+    const r = await fetch('/api/oi/genres?t=' + Date.now(), { cache: 'no-store' });
+    const data = await r.json();
+    const row = document.getElementById('genreRow');
+    if (data.genres) {
+      data.genres.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.textContent = g.label;
+        btn.onclick = () => filterGenre(g.key, btn);
+        row.appendChild(btn);
+      });
+    }
+  } catch (e) {}
+}
+
+async function loadResults(reset = true) {
+  const grid = document.getElementById('grid');
+  const btn = document.getElementById('loadMoreBtn');
+  const counter = document.getElementById('pageCounter');
+  const pagination = document.getElementById('pagination');
+
+  if (reset) {
+    currentPage = 1;
+    totalLoaded = 0;
+    window._animeData = [];
+    displayedIds.clear();
+    grid.innerHTML = '<div class="loading" style="grid-column:1/-1"><div class="loading-spinner"></div>加载中...<div class="load-bar-wrap"><div class="load-bar"></div></div></div>';
+    pagination.style.display = 'none';
+  } else {
+    btn.disabled = true;
+    btn.textContent = '加载中...';
+  }
+
+  try {
+    let url = `/api/oi/browse?page=${currentPage}&perPage=24`;
+    if (currentGenre) url += '&genre=' + encodeURIComponent(currentGenre);
+    if (currentYear) url += '&year=' + currentYear;
+    if (currentMonth) url += '&month=' + currentMonth;
+    if (currentSeason) url += '&season=' + currentSeason;
+
+    url += '&t=' + Date.now();
+    const r = await fetch(url, { cache: 'no-store' });
+    const data = await r.json();
+
+    if (data.results && data.results.length > 0) {
+      // Filter out duplicates (same id or same title+year)
+      const uniqueResults = data.results.filter(a => {
+        const uid = a.id || (a.title + '|' + a.year);
+        if (displayedIds.has(uid)) return false;
+        displayedIds.add(uid);
+        return true;
+      });
+
+      if (uniqueResults.length === 0 && !reset) {
+        // All results on this page are duplicates — try next page
+        currentPage++;
+        loadResults(false);
+        return;
+      }
+
+      const cardsHtml = uniqueResults.map(a => {
+        const idx = window._animeData.push(a) - 1;
+        return `
+          <div class="anime-card" onclick="playAnime(window._animeData[${idx}])">
+            <div class="img-wrap">
+              <img src="${a.image || ''}" alt="${escapeHtml(a.title)}" loading="lazy" onerror="this.style.display='none'">
+              ${cardStatusBadge(a) ? '<span class="status-badge">' + escapeHtml(cardStatusBadge(a)) + '</span>' : ''}
+            </div>
+            <div class="info">
+              <h3>${escapeHtml(a.title)}</h3>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (reset) {
+        grid.innerHTML = cardsHtml;
+      } else {
+        grid.insertAdjacentHTML('beforeend', cardsHtml);
+      }
+
+      totalLoaded += uniqueResults.length;
+      hasMore = data.hasMore === true;
+      pagination.style.display = 'flex';
+      counter.textContent = `已加载 ${totalLoaded} 部`;
+      btn.textContent = '加载更多';
+      btn.disabled = !hasMore;
+    } else if (reset) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>暂无数据，换个筛选条件试试</div>';
+      pagination.style.display = 'none';
+    }
+  } catch (e) {
+    if (reset) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div>加载失败</div>';
+    }
+  }
+}
+
+function loadMore() {
+  if (!hasMore) return;
+  currentPage++;
+  loadResults(false);
+}
+
+// Debounce filter changes
+let _filterTimer = null;
+function debouncedLoad() {
+  if (_filterTimer) clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(() => loadResults(true), 300);
+}
+
+function cardStatusBadge(a) {
+  const totalEpisodes = Number(a.episodes) || 0;
+  const nextEpisode = a.nextAiring ? Number(a.nextAiring.episode) || 0 : 0;
+  if (a.nextAiring && a.nextAiring.time) {
+    const d = new Date(a.nextAiring.time * 1000);
+    const week = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    const currentEp = Math.max(0, Number(a.nextAiring.episode || 1) - 1);
+    return currentEp > 0 ? `${currentEp}|${week}${hh}:${mm}更` : `${week}${hh}:${mm}更`;
+  }
+  if (a.status === 'FINISHED') {
+    return totalEpisodes > 0 ? `${totalEpisodes}全` : '已完结';
+  }
+  if (a.status === 'RELEASING') return '更新中';
+  if (a.status === 'NOT_YET_RELEASED') return '未开播';
+  return '';
+}
+
+function filterGenre(genre, btn) {
+  currentGenre = genre;
+  document.querySelectorAll('#genreRow .filter-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  debouncedLoad();
+}
+
+function filterYear(year, btn) {
+  currentYear = year;
+  document.querySelectorAll('#yearRow .filter-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  debouncedLoad();
+}
+
+function filterMonth(month, btn) {
+  currentMonth = month;
+  document.querySelectorAll('#monthRow .filter-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  debouncedLoad();
+}
+
+function filterSeason(season, btn) {
+  currentSeason = season;
+  document.querySelectorAll('#seasonRow .filter-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  debouncedLoad();
+}
+
+loadGenres();
+loadResults(true);
+</script>
+
+<script src="/js/mobile-app.js" defer></script>
+<script src="/js/anime-agent-config.js" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+</body>
+</html>

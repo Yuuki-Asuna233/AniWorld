@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>AniWorld 访问验证</title>
+  <style>
+    :root { color-scheme: light dark; font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 20% 15%, #b8f5d0 0, transparent 34%), radial-gradient(circle at 85% 80%, #c8d8ff 0, transparent 34%), #f5f8f3; color: #172219; padding: 24px; }
+    main { width: min(100%, 420px); padding: 34px; border: 1px solid rgba(33, 82, 47, .14); border-radius: 28px; background: rgba(255, 255, 255, .82); box-shadow: 0 24px 70px rgba(32, 72, 45, .15); backdrop-filter: blur(18px); }
+    .mark { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 18px; background: #22783b; color: white; font-size: 28px; }
+    h1 { margin: 24px 0 10px; font-size: 26px; }
+    p { margin: 0 0 26px; color: #526157; line-height: 1.7; }
+    label { display: block; margin-bottom: 9px; font-weight: 650; }
+    .field { position: relative; }
+    input { width: 100%; height: 52px; border: 1px solid #b9c6bc; border-radius: 14px; padding: 0 48px 0 15px; font-size: 17px; background: rgba(255,255,255,.9); color: #172219; outline: none; }
+    input:focus { border-color: #22783b; box-shadow: 0 0 0 3px rgba(34,120,59,.13); }
+    #toggle { position: absolute; right: 8px; top: 7px; width: 38px; height: 38px; padding: 0; border: 0; background: transparent; color: #526157; cursor: pointer; font-size: 18px; }
+    #submit { width: 100%; height: 52px; margin-top: 18px; border: 0; border-radius: 14px; background: #22783b; color: white; font-size: 17px; font-weight: 700; cursor: pointer; }
+    #submit:disabled { opacity: .6; cursor: wait; }
+    #message { min-height: 24px; margin: 12px 2px 0; color: #b42318; font-size: 14px; }
+    @media (prefers-color-scheme: dark) { body { background: #111812; color: #edf7ef; } main { background: rgba(25,35,27,.92); } p, #toggle { color: #aebbb1; } input { background: #151e17; color: #edf7ef; border-color: #526157; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true">✦</div>
+    <h1>访问验证</h1>
+    <p>此站点仅限授权访问。请输入 18 位访问密码后继续。</p>
+    <form id="form">
+      <label for="password">访问密码</label>
+      <div class="field">
+        <input id="password" name="password" type="password" maxlength="18" autocomplete="current-password" required autofocus>
+        <button id="toggle" type="button" aria-label="显示密码">◉</button>
+      </div>
+      <button id="submit" type="submit">解锁 AniWorld</button>
+      <div id="message" role="alert" aria-live="polite"></div>
+    </form>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const password = document.getElementById('password');
+    const submit = document.getElementById('submit');
+    const message = document.getElementById('message');
+    const next = new URLSearchParams(location.search).get('next');
+    const destination = next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
+
+    fetch('/api/access/status', { credentials: 'same-origin', cache: 'no-store' })
+      .then(response => response.json())
+      .then(data => { if (data.unlocked) location.replace(destination); })
+      .catch(() => {});
+
+    document.getElementById('toggle').addEventListener('click', () => {
+      password.type = password.type === 'password' ? 'text' : 'password';
+    });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      message.textContent = '';
+      submit.disabled = true;
+      submit.textContent = '正在验证…';
+      try {
+        const response = await fetch('/api/access/unlock', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: password.value })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || '验证失败，请重试');
+        location.replace(destination);
+      } catch (error) {
+        message.textContent = error.message || '网络连接失败，请稍后重试';
+        password.select();
+      } finally {
+        submit.disabled = false;
+        submit.textContent = '解锁 AniWorld';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/css/mobile-app.css">
+<title>AniWorld - 动漫详情</title>
+<link rel="preconnect" href="https://oiapi.net">
+<link rel="preconnect" href="https://graphql.anilist.co">
+<link rel="preconnect" href="https://trace.moe">
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.0/dist/hls.min.js"></script>
+<link rel="stylesheet" href="/css/anime.css">
+</head>
+<body>
+
+<div class="header">
+  <a href="/">AniWorld</a>
+  <input type="text" id="headerSearch" placeholder="搜索动漫（中文名称）..." onkeydown="if(event.key==='Enter')search()">
+  <nav>
+    <a href="/">首页</a>
+    <a href="search_anime.html">搜索</a>
+    <a href="calendar.html">更新日历</a>
+    <a href="categories.html">全部分类</a>
+    <a href="rankings.html">排行榜</a>
+    <a href="my.html">我的</a>
+  </nav></div>
+
+<div class="container" id="mainContainer">
+  <div class="top-area">
+    <div class="poster" id="poster"></div>
+    <div class="info" id="info"></div>
+  </div>
+
+  <div class="player-wrapper" id="playerWrapper" style="display:none;">
+    <div class="player-main">
+      <div class="custom-player" id="customPlayer">
+        <video id="videoPlayer" class="no-controls" preload="auto" style="width:100%;max-height:65vh;background:#000;"></video>
+
+        <div class="player-loading-overlay hidden" id="playerLoading">
+          <div class="spin"></div>
+          <div class="load-stage" id="loadingMsg">正在获取播放地址...</div>
+          <div class="load-sub" id="loadingSub"></div>
+          <div class="load-progress-wrap"><div class="load-progress-bar" id="loadingBar"></div></div>
+          <div class="load-progress-pct" id="loadingPct"></div>
+        </div>
+
+        <div class="player-controls" id="playerControls">
+          <button class="ctrl-btn play-btn" id="ctrlPlay" title="播放/暂停">
+            <svg id="playIcon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><polygon points="4,2 14,8 4,14"/></svg>
+            <svg id="pauseIcon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="display:none;"><rect x="4" y="3" width="3" height="10" rx="1"/><rect x="9" y="3" width="3" height="10" rx="1"/></svg>
+          </button>
+          <span class="ctrl-time" id="ctrlTime">0:00 / 0:00</span>
+          <div class="ctrl-progress" id="ctrlProgressWrap">
+            <div class="ctrl-progress-bar" id="ctrlProgressBar"></div>
+            <div class="ctrl-progress-fill" id="ctrlProgressFill"></div>
+            <div class="ctrl-progress-handle" id="ctrlProgressHandle"></div>
+            <input type="range" class="ctrl-progress-input" id="ctrlProgressInput" min="0" max="100" value="0" step="0.1">
+          </div>
+          <button class="ctrl-btn ep-btn-inline" id="ctrlQuality" onclick="toggleQualitySelector()" title="画质切换" style="min-width:44px;">画质</button>
+          <div class="volume-wrap" id="volumeWrap">
+            <button class="ctrl-btn" id="ctrlVolumeBtn" title="音量">🔊</button>
+            <div class="volume-slider-wrap" id="volumeSliderWrap">
+              <input type="range" class="ctrl-volume-slider-vertical" id="ctrlVolumeSlider" min="0" max="1" step="0.05" value="1">
+            </div>
+          </div>
+          <button class="ctrl-btn ep-btn-inline" id="ctrlEpSelector" onclick="toggleEpSelector()" title="选集">选集</button>
+          <button class="ctrl-btn" id="ctrlSpeed" title="倍速">1x</button>
+          <button class="ctrl-btn" id="ctrlSettings" title="设置" onclick="toggleSettingsPanel()">⚙</button>
+          <button class="ctrl-btn" id="ctrlFullscreen" title="全屏">⛶</button>
+        </div>
+        <div class="seek-tooltip" id="seekTooltip"></div>
+        <div class="ep-selector-panel" id="epSelectorPanel">
+          <div class="ep-sel-header">
+            <span id="epSelTitle">选择集数</span>
+            <button onclick="toggleEpSelector()" title="关闭">✕</button>
+          </div>
+          <div class="ep-sel-grid" id="epSelGrid"></div>
+        </div>
+        <div class="speed-selector-panel" id="speedSelectorPanel">
+          <div class="ep-sel-header">
+            <span>选择倍速</span>
+            <button onclick="toggleSpeedSelector()" title="关闭">✕</button>
+          </div>
+          <div class="speed-sel-grid" id="speedSelGrid"></div>
+        </div>
+        <div class="settings-panel" id="settingsPanel">
+          <div class="ep-sel-header">
+            <span>播放设置</span>
+            <button onclick="toggleSettingsPanel()" title="关闭">✕</button>
+          </div>
+          <div class="settings-list">
+            <label class="settings-row">
+              <span>自动联播</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="autoPlayToggle">
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+            <label class="settings-row">
+              <span>单集循环</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="loopToggle">
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="quality-selector-panel" id="qualitySelectorPanel">
+          <div class="ep-sel-header">
+            <span>画质选择</span>
+            <button onclick="toggleQualitySelector()" title="关闭">✕</button>
+          </div>
+          <div id="qualitySelList" style="padding:4px 0;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="franchise-sidebar" id="franchiseBar">
+      <h3>📺 系列作品</h3>
+      <div id="franchiseList"></div>
+    </div>
+  </div>
+
+  <div class="episodes" id="epSection" style="display:none;width:100%;">
+    <h2 id="epTitle">选集</h2>
+    <div class="ep-grid" id="epGrid"></div>
+  </div>
+
+  <div class="recommend-section" id="recommendSection" style="display:none;width:100%;">
+    <h2>新番推荐</h2>
+    <div class="recommend-grid" id="recommendGrid"></div>
+  </div>
+</div>
+
+<div id="errorContainer"></div>
+
+<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="/js/anime-title-utils.js"></script>
+<script src="/js/anime-media-utils.js"></script>
+<script src="/js/playback-session.js?v=20261008-lifecycle"></script>
+<script src="/js/anime-user-state.js?v=20261008-lifecycle"></script>
+<script src="/js/anime-page.js?v=20261011T043709Z"></script>
+
+<script src="/js/mobile-app.js" defer></script>
+<script src="/js/anime-agent-config.js" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+</body>
+</html>

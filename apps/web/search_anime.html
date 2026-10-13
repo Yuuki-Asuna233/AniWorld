@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/css/mobile-app.css">
+<title>搜索动漫 - AniWorld</title>
+<link rel="preconnect" href="https://oiapi.net">
+<link rel="preconnect" href="https://graphql.anilist.co">
+<link rel="preconnect" href="https://trace.moe">
+<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="common.js"></script>
+<style>
+* { margin:0; box-sizing:border-box; }
+body { background: #0d1117; color: #c9d1d9; font-family:'Segoe UI','PingFang SC',sans-serif; min-height:100vh; }
+
+.header { background: #161b22; border-bottom:1px solid #30363d; padding:12px 24px; display:flex; align-items:center; gap:20px; position:sticky; top:0; z-index:100; flex-wrap:wrap; }
+.header a { color:#e85d04; text-decoration:none; font-weight:700; font-size:20px; }
+.header input { flex:1; max-width:600px; margin:0 auto; padding:10px 16px; border-radius:24px; border:1px solid #30363d; background: #0d1117; color: #c9d1d9; font-size:15px; outline:none; }
+.header input:focus { border-color: #e85d04; }
+.header nav { display:flex; gap:12px; }
+.header nav a { color: #8b949e; text-decoration:none; font-size:14px; padding:6px 12px; border-radius:6px; }
+.header nav a.on, .header nav a:hover { color:#e85d04; background: #21262d; }
+
+.results { max-width:900px; margin:30px auto; padding:0 20px; }
+.result-card { display:flex; gap:16px; padding:16px; border-radius:12px; margin-bottom:12px; background: #161b22; border:1px solid #30363d; cursor:pointer; transition:.2s; }
+.result-card:hover { border-color: #e85d04; background:#1c2128; transform:translateY(-2px); }
+.result-card img { width:100px; height:140px; object-fit:cover; border-radius:8px; flex-shrink:0; }
+.result-info { flex:1; }
+.result-title { font-size:17px; font-weight:700; color: #e6edf3; margin-bottom:8px; }
+.result-meta { font-size:13px; color: #8b949e; margin-bottom:8px; }
+.result-meta span { margin-right:12px; }
+.result-ji { display:inline-block; background: #21262d; color: #8b949e; padding:2px 8px; border-radius:4px; font-size:12px; margin-top:6px; }
+.result-year { display:inline-block; background: #21262d; color: #8b949e; padding:2px 8px; border-radius:4px; font-size:12px; margin-top:6px; margin-left:6px; }
+.loading { text-align:center; padding:60px; color: #8b949e; }
+.loading-spinner { width:40px; height:40px; border:3px solid #21262d; border-top:3px solid #e85d04; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+.load-bar-wrap { width:200px; height:4px; background: #21262d; border-radius:2px; margin:12px auto 0; overflow:hidden; }
+.load-bar { height:100%; background:linear-gradient(90deg,#e85d04,#fd7e14); border-radius:2px; animation:loadPulse 1.5s ease-in-out infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes loadPulse { 0%{width:0%;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0%;margin-left:100%} }
+.empty { text-align:center; padding:60px; color: #8b949e; }
+.empty-icon { font-size:48px; margin-bottom:12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="/">AniWorld</a>
+  <input type="text" id="searchInput" placeholder="搜索动漫（中文名称）" autofocus>
+  <nav>
+    <a href="/">首页</a>
+    <a href="search_anime.html" class="on">搜索</a>
+    <a href="calendar.html">更新日历</a>
+    <a href="categories.html">全部分类</a>
+    <a href="rankings.html">排行榜</a>
+    <a href="my.html">我的</a>
+  </nav></div>
+
+<div class="results" id="results"></div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const q = params.get('q') || '';
+const input = document.getElementById('searchInput');
+input.value = q;
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && input.value.trim()) {
+    location.href = 'search_anime.html?q=' + encodeURIComponent(input.value.trim());
+  }
+});
+
+if (q) search(q);
+
+let lastSearchResults = [];
+
+async function search(query) {
+  const container = document.getElementById('results');
+  container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>搜索中...<div class="load-bar-wrap"><div class="load-bar"></div></div></div>';
+
+  try {
+    const r = await fetch('/api/oi/search?q=' + encodeURIComponent(query) + '&pure=1');
+    if (!r.ok) throw new Error('API error');
+    const data = await r.json();
+    lastSearchResults = data.results || [];
+    render(data.results || [], query);
+  } catch (e) {
+    console.warn('OI search error:', e.message);
+    container.innerHTML = '<div class="empty"><p style="margin-bottom:12px;">搜索服务暂时不可用</p><p style="font-size:13px;">请确保服务器已启动：<code>node server.js</code></p></div>';
+  }
+}
+
+function render(results, query) {
+  const container = document.getElementById('results');
+
+  if (results.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🔍</div>
+        <p>未找到与「${escapeHtml(query)}」相关的动漫</p>
+        <p style="margin-top:8px;font-size:13px;">试试其他关键词，或返回<a href="/" style="color:#e85d04;">首页</a></p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `<h3 style="color:#8b949e;margin-bottom:16px;">「${escapeHtml(query)}」的搜索结果（${results.length}部）</h3>` +
+    results.map((a, i) => `
+      <div class="result-card" onclick="playSearchResult(${i})">
+        <img src="${a.image || ''}" alt="${escapeHtml(a.title)}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22140%22><rect fill=%2221262d%22 width=%22100%22 height=%22140%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%228b949e%22>无封面</text></svg>'">
+        <div class="result-info">
+          <div class="result-title">${escapeHtml(a.title)}</div>
+          <div class="result-meta">
+            ${a.ji ? '<span class="result-ji">📡 ' + escapeHtml(a.ji) + '</span>' : ''}
+            ${a.year ? '<span class="result-year">📅 ' + a.year + '</span>' : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+}
+
+function playSearchResult(idx) {
+  const a = lastSearchResults[idx];
+  if (!a) return;
+
+  // 注意：搜索页点击不传 ep 参数，默认从第1集开始
+  // 只有历史记录页才传 ep 参数跳到指定集数
+
+  // OIAPI source: direct play with oiMsg/oiIndex
+  if (a.source === 'oiapi' && a.oiIndex) {
+    const msg = a.oiMsg || a.title || '';
+    location.href = '/anime.html?msg=' + encodeURIComponent(msg) + '&n=' + a.oiIndex;
+    return;
+  }
+
+  // AniList source with bridge data
+  if (a.oiResolved && a.oiMsg && a.oiIndex) {
+    location.href = '/anime.html?msg=' + encodeURIComponent(a.oiMsg) + '&n=' + a.oiIndex;
+    return;
+  }
+
+  // Fallback: use playAnime from common.js for client-side bridge
+  playAnime(a);
+}
+</script>
+
+<script src="/js/mobile-app.js" defer></script>
+<script src="/js/anime-agent-config.js" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+</body>
+</html>

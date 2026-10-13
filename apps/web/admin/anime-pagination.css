@@ -1,0 +1,40 @@
+.pager {
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.page-status {
+  min-width: 92px;
+  color: var(--text);
+  font-size: 12px;
+  text-align: center;
+}
+
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-input {
+  width: 62px !important;
+  padding: 6px 8px !important;
+  text-align: center;
+}
+
+.page-input::-webkit-inner-spin-button,
+.page-input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,118 @@
+# 依赖
+node_modules/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 环境变量
+.env
+.env.local
+!.env.example
+
+# 日志
+*.log
+npm-debug.log*
+
+# Python (项目使用 Node.js，排除 Python 残留)
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.py
+*.bat
+*.ps1
+!scripts/release/
+!scripts/release/*.ps1
+
+# 诊断/调试
+diagnose.*
+debug_server.*
+find_server*
+check_log*
+get_log*
+
+# 临时/测试
+_check_*
+temp_*
+test_*
+*_test.*
+*.bin
+
+# Flutter regression tests are project source, not disposable test output.
+!apps/client/test/
+!apps/client/test/**/
+!apps/client/test/**/*_test.dart
+
+# 数据库（二进制，通常不提交）
+data/runtime/*.db
+data/runtime/*.db.tmp
+data/runtime/agent-artifacts/
+
+# 用户上传
+data/uploads/
+data/releases/*.apk
+data/releases/*.zip
+data/releases/AniWorld_*/
+
+# CodeBuddy
+.codebuddy/
+
+# Agent / IDE temporary workspace state
+.agents/
+
+# Deployment archives and generated release folders
+deploy-packages/
+*.zip
+
+# Local assistant state and generated release artifacts
+.workbuddy/
+dist/
+*.bak
+
+# Flutter / Android generated files
+apps/client/.dart_tool/
+apps/client/build/
+apps/client/android/.gradle/
+apps/client/android/build/
+android/.gradle/
+android/build/
+app/android/.gradle/
+app/android/app/build/
+app/android/build/
+mobile/aniworld_app/.dart_tool/
+mobile/aniworld_app/android/.gradle/
+mobile/aniworld_app/build/
+
+# Keep required vendored source & tests despite generic temp/test patterns.
+!packages/media_kit/lib/src/player/native/utils/temp_file.dart
+!packages/media_kit/test/
+!packages/media_kit/test/**/
+!packages/media_kit/test/**/*_test.dart
+
+# Private signing, credentials and local deployment state
+**/key.properties
+**/local.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.key
+*.pem
+*.apk
+*.aab
+.env.*
+!.env.example
+data/runtime/*
+!data/runtime/README.md
+data/audits/
+data/datasets/
+tests/model/

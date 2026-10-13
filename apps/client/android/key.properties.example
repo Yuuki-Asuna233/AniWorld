@@ -1,0 +1,5 @@
+storeFile=/absolute/path/to/your-release.keystore
+storePassword=replace-with-your-keystore-password
+keyAlias=your-key-alias
+keyPassword=replace-with-your-key-password
+expectedCertSha256=replace-with-the-sha256-of-your-signing-certificate
