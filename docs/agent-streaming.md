@@ -1,8 +1,5 @@
 # 白羽实时回答与工具进度
 
-## 原因
-
-模型 Provider 原本已经读取 SSE 增量，但 Agent 执行循环把 `onDelta` 替换成空函数。服务端等完整回答和会话提交完成后才拆分正文发送，因此客户端收到的是完成后的批量文本。
 
 ## 执行阶段
 
@@ -38,8 +35,3 @@
 
 本地结果、恢复回执、模型未配置等完整结果直接发送，不通过延时拆字模拟模型流式生成。Provider 仍保留少量协议前缀安全缓冲，所以很短的回答可能一次显示；网络或上游代理自身聚合响应也会影响实际刷新频率。
 
-## 与 Codex 的对应关系
-
-Codex App Server 使用 `item/started`、`item/completed` 表达执行生命周期，使用 `item/agentMessage/delta` 发送正文增量，完成项提供最终权威状态；消息还可带 `commentary` / `final_answer` 阶段。本项目借鉴这种事件分工，继续使用自己的 HTTP NDJSON 契约。
-
-来源：[OpenAI 官方 Codex App Server 文档](https://learn.chatgpt.com/docs/app-server)。
