@@ -592,7 +592,7 @@ async function clearAllFavorites() {
 function favCard(f) {
   return `
     <div class="fav-card" data-play="${escapeHtml(JSON.stringify(f))}">
-      <img src="${escapeHtml(window.SiteUtils.safeImageUrl(f.anime_image))}" alt="" loading="lazy" onerror="this.style.display='none'">
+      <img ${window.SiteUtils.coverImageAttributes(f)} alt="" loading="lazy">
       <div class="card-info">
         <div class="card-title">${escapeHtml(f.anime_title)}</div>
         <div class="card-meta">追番时间：${timeAgo(f.created_at)}</div>
@@ -662,7 +662,7 @@ function histCard(h) {
   const epInfo = h.episode_title || (h.episode_number ? '第' + h.episode_number + '集' : '');
   return `
     <div class="hist-card" data-history-id="${escapeHtml(encodeURIComponent(h.anime_id))}" data-play="${escapeHtml(JSON.stringify(h))}">
-      <img src="${escapeHtml(window.SiteUtils.safeImageUrl(h.anime_image))}" alt="" loading="lazy" onerror="this.style.display='none'">
+      <img ${window.SiteUtils.coverImageAttributes(h)} alt="" loading="lazy">
       <div class="card-info">
         <div class="card-title">${escapeHtml(h.anime_title)}</div>
         <div class="card-meta">${escapeHtml(epInfo)}</div>

@@ -808,9 +808,9 @@
         link.href = String(item.href || '').startsWith('/') ? item.href : '/search_anime.html';
         link.style.cssText = 'color:inherit;text-decoration:none;display:block';
         link.addEventListener('click', () => this.recordEvent(item.anilistId, 'recommend_click', runId));
-        if (item.image) {
+        if (item.image || item.coverFallback) {
           const image = document.createElement('img');
-          image.src = item.image;
+          window.SiteUtils.setCoverImage(image, item);
           image.alt = item.title || '';
           image.loading = 'lazy';
           link.appendChild(image);

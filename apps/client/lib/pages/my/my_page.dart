@@ -1137,6 +1137,7 @@ class _ContinueWatchingCard extends StatelessWidget {
         children: [
           NetworkImgLayer(
             src: historyItem.bangumiItem.images['large'] ?? '',
+            fallbackSrc: historyItem.bangumiItem.images['fallback'],
             width: 88,
             height: 96,
           ),

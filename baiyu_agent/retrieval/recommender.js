@@ -18,6 +18,7 @@ function toCard(meta, reason = '') {
     anilistId: Number(meta.anilist_id) || 0,
     title: result.title,
     image: result.image,
+    coverFallback: result.coverFallback,
     score: result.score,
     year: result.year,
     status: result.status,

@@ -1,9 +1,14 @@
 /**
  * User routes - favorites and watch history.
  */
+const { animeCoverFields } = require('../services/anime-covers');
 
 function mountUserRoutes(app, deps) {
   const { database, requireAuth } = deps;
+  const withSavedCover = row => {
+    const covers = animeCoverFields(row, { database });
+    return { ...row, ...covers, anime_image: covers.image };
+  };
 
   function publicOrigin(req) {
     const proto = req.protocol || 'http';
@@ -78,18 +83,18 @@ function mountUserRoutes(app, deps) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
-    const favorites = database.getFavorites(req.user.id);
+    const favorites = database.getFavorites(req.user.id).map(withSavedCover);
     res.json({ results: favorites, total: favorites.length });
   });
 
   // POST /api/user/favorites
   app.post('/api/user/favorites', requireAuth, (req, res) => {
-    const { anilist_id, anime_id, anime_title, anime_image, anime_msg, anime_n, oi_index } = req.body;
+    const { anilist_id, anime_id, anime_title, anime_msg, anime_n, oi_index } = req.body;
     if (!anime_id || !anime_title) {
       return res.status(400).json({ error: '缺少动漫信息' });
     }
     const result = database.addFavorite(req.user.id, {
-      anilist_id, anime_id, anime_title, anime_image, anime_msg, anime_n, oi_index
+      anilist_id, anime_id, anime_title, anime_image: animeCoverFields(req.body, { database }).image, anime_msg, anime_n, oi_index
     });
     if (result.already) return res.json({ success: true, message: '已经追番了' });
     if (result.error) return res.status(500).json({ error: result.error });
@@ -132,18 +137,18 @@ function mountUserRoutes(app, deps) {
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
     const limit = parseInt(req.query.limit) || 50;
-    const history = database.getHistory(req.user.id, limit);
+    const history = database.getHistory(req.user.id, limit).map(withSavedCover);
     res.json({ results: history, total: history.length });
   });
 
   // POST /api/user/history
   app.post('/api/user/history', requireAuth, (req, res) => {
-    const { anilist_id, anime_id, anime_title, anime_image, anime_msg, anime_n, episode_number, episode_title, progress, position_seconds, duration_seconds, video_url } = req.body;
+    const { anilist_id, anime_id, anime_title, anime_msg, anime_n, episode_number, episode_title, progress, position_seconds, duration_seconds, video_url } = req.body;
     if (!anime_id || !anime_title) {
       return res.status(400).json({ error: '缺少动漫信息' });
     }
     const result = database.saveHistory(req.user.id, {
-      anilist_id, anime_id, anime_title, anime_image, anime_msg, anime_n,
+      anilist_id, anime_id, anime_title, anime_image: animeCoverFields(req.body, { database }).image, anime_msg, anime_n,
       episode_number: episode_number || '',
       episode_title: episode_title || '',
       progress: progress || 0, position_seconds, duration_seconds,

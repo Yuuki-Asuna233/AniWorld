@@ -3,6 +3,7 @@
 const { ANIME } = require('@consumet/extensions');
 const { safeJsonParse } = require('../utils/db-helpers');
 const { getCache, setCache } = require('../services/cache');
+const { animeCoverFields } = require('../services/anime-covers');
 
 const saturn = new ANIME.AnimeSaturn();
 
@@ -20,7 +21,7 @@ function mountAnimeRoutes(app, { database, cache }) {
         episodes: m.episodes || '?',
         status: m.status || 'UNKNOWN',
         score: m.average_score || 0,
-        image: m.cover_image || '',
+        ...animeCoverFields({}, { metadata: m }),
         synopsis: '',
         source: 'db',
         oiMsg: m.oi_msg || '',
@@ -52,7 +53,7 @@ function mountAnimeRoutes(app, { database, cache }) {
           episodes: meta.episodes || 0,
           status: meta.status || 'UNKNOWN',
           score: meta.average_score || 0,
-          image: meta.cover_image || '',
+          ...animeCoverFields({}, { metadata: meta }),
           synopsis: '',
           genres: safeJsonParse(meta.genres, []),
           source: 'db',
@@ -69,11 +70,15 @@ function mountAnimeRoutes(app, { database, cache }) {
   app.get('/api/episodes/:animeId', async (req, res) => {
     const animeId = req.params.animeId;
     let animeTitle = '';
+    let metadata = null;
     try {
       const numericId = animeId.startsWith('anilist_') ? parseInt(animeId.replace('anilist_', '')) : parseInt(animeId);
       if (numericId && !isNaN(numericId)) {
         const meta = database.getAnimeMetaById(numericId);
-        if (meta) animeTitle = meta.title_romaji || meta.title_native || meta.title_chinese || '';
+        if (meta) {
+          metadata = meta;
+          animeTitle = meta.title_romaji || meta.title_native || meta.title_chinese || '';
+        }
       }
     } catch (e) { return res.json({ episodes: [], error: 'Failed to get anime info' }); }
     if (!animeTitle) return res.json({ episodes: [], error: 'No title found' });
@@ -100,7 +105,7 @@ function mountAnimeRoutes(app, { database, cache }) {
         title: ep.title || `第 ${ep.number} 集`,
         image: ep.image || info.image || ''
       }));
-      return res.json({ episodes, title: info.title, image: info.image });
+      return res.json({ episodes, title: info.title, ...animeCoverFields({ image: info.image }, { metadata }) });
     } catch (e) {
       return res.json({ episodes: [], error: e.message });
     }

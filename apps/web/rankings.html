@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="/css/mobile-app.css">
 <title>排行榜 - AniWorld</title>
-<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="/js/site-utils.js?v=20261016-covers-v1"></script>
 <script src="common.js"></script>
 <style>
 * { margin:0; box-sizing:border-box; }
@@ -97,7 +97,7 @@ async function loadRankings() {
         return `
           <div class="rank-item" onclick="playAnime(window._animeData[${idx}])">
             <div class="rank-num ${i < 3 ? 'top3' : ''}">${i + 1}</div>
-            <img src="${a.image || ''}" class="rank-poster" alt="" onerror="this.style.display='none'">
+            <img ${window.SiteUtils.coverImageAttributes(a)} class="rank-poster" alt="">
             <div class="rank-info">
               <div class="rank-title">${escapeHtml(a.title)}</div>
               <div class="rank-meta">${a.genres ? a.genres.slice(0, 4).map(g=>escapeHtml(g)).join(' · ') : ''}${a.year ? ' · ' + a.year : ''}</div>
@@ -126,6 +126,6 @@ loadRankings();
 
 <script src="/js/mobile-app.js" defer></script>
 <script src="/js/anime-agent-config.js" defer></script>
-<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261016-covers-v1" defer></script>
 </body>
 </html>

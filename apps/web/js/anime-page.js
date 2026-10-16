@@ -1042,8 +1042,8 @@ function renderInfo(d) {
   currentAnimeAnilistId = Number(d.aniId) || 0;
   updateAnimeAgentContext({ title: d.name || currentMsg });
 
-  posterEl.innerHTML = d.image
-    ? '<img src="' + escapeHtml(window.SiteUtils.safeImageUrl(d.image)) + '" alt="' + escapeHtml(d.name) + '" onerror="this.style.display=\'none\'">'
+  posterEl.innerHTML = d.image || d.coverFallback
+    ? '<img ' + window.SiteUtils.coverImageAttributes(d) + ' alt="' + escapeHtml(d.name) + '">'
     : '';
 
   // Build unique anime ID
@@ -1391,7 +1391,7 @@ function renderRecommendations(results) {
     const statusStr = item.status === 'RELEASING' ? '<span class="rec-badge" style="background:#e85d04;color:#fff;">连载中</span>' : '';
     const dataIdx = window._animeData.length + idx;
     return '<a class="recommend-card" href="javascript:void(0)" onclick="playAnime(window._animeData[' + dataIdx + ']); return false" title="' + escapeHtml(displayTitle) + '">\n' +
-      '<img src="' + escapeHtml(window.SiteUtils.safeImageUrl(item.image)) + '" alt="' + escapeHtml(displayTitle) + '" loading="lazy" onerror="this.style.display=\'none\'">\n' +
+      '<img ' + window.SiteUtils.coverImageAttributes(item) + ' alt="' + escapeHtml(displayTitle) + '" loading="lazy">\n' +
       '<div class="rec-info">\n' +
         '<div class="rec-title">' + escapeHtml(displayTitle) + '</div>\n' +
         '<div class="rec-meta">' + scoreStr + yearStr + epStr + statusStr + '</div>\n' +
@@ -1658,7 +1658,7 @@ async function loadFranchise() {
     list.innerHTML = entries.map(e => {
       const isCurrent = e.index === highlightIdx;
       return '<div class="franchise-item' + (isCurrent ? ' current' : '') + '" onclick="switchFranchise(' + e.index + ')" title="' + escapeHtml(e.title) + '">'
-        + (e.image ? '<img src="' + escapeHtml(window.SiteUtils.safeImageUrl(e.image)) + '" alt="" onerror="this.style.display=\'none\'">' : '')
+        + '<img ' + window.SiteUtils.coverImageAttributes(e) + ' alt="">'
         + '<div class="fi-info">'
         + '<div class="fi-title">' + escapeHtml(e.title) + '</div>'
         + '<div class="fi-meta">' + escapeHtml(e.year || '') + (e.ji ? ' · ' + escapeHtml(e.ji) : '') + '</div>'

@@ -26,6 +26,35 @@
     } catch (_) { return ''; }
   }
 
+  function coverUrls(item = {}) {
+    return [...new Set([
+      item.image || item.anime_image || item.cover || item.images?.large,
+      item.coverFallback || item.images?.fallback
+    ].map(safeImageUrl).filter(Boolean))];
+  }
+
+  function onCoverError(image) {
+    const fallback = image.dataset.coverFallback;
+    delete image.dataset.coverFallback;
+    if (fallback && fallback !== image.getAttribute('src')) image.src = fallback;
+    else image.style.visibility = 'hidden';
+  }
+
+  function coverImageAttributes(item) {
+    const urls = coverUrls(item);
+    return (urls[0] ? `src="${escapeHtml(urls[0])}" ` : 'style="visibility:hidden" ') +
+      `data-cover-fallback="${escapeHtml(urls[1] || '')}" onerror="window.SiteUtils.onCoverError(this)"`;
+  }
+
+  function setCoverImage(image, item) {
+    const urls = coverUrls(item);
+    image.onerror = () => onCoverError(image);
+    image.dataset.coverFallback = urls[1] || '';
+    image.style.visibility = urls.length ? '' : 'hidden';
+    if (urls[0]) image.src = urls[0];
+    else image.removeAttribute('src');
+  }
+
   function toast(message, color = '#e85d04') {
     const element = document.createElement('div');
     element.className = 'toast';
@@ -112,6 +141,9 @@
     clearAuthToken,
     escapeHtml,
     safeImageUrl,
+    coverImageAttributes,
+    onCoverError,
+    setCoverImage,
     getAuthToken,
     setAuthToken,
     toast

@@ -1,5 +1,6 @@
 const { buildMergedSearchResults, buildPureSearchResults } = require('../services/catalogue-search');
-const { getAnimeDetails } = require('../services/catalogue');
+const { getAnimeDetails, enrichSearchResultsWithAniListMeta } = require('../services/catalogue');
+const { animeCoverFields, withAnimeCovers } = require('../services/anime-covers');
 const { isAgentAdmin } = require('../services/agent-telemetry');
 // OIAPI routes: search, details, play, probe, sources, franchise, trending, newseason, classic,
 // today, calendar, rankings, browse, bridge, genres, meta
@@ -69,6 +70,7 @@ function fetchCategoryFromDbByTitles(database, titles, limit) {
  */
 function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAuth }) {
   mountOiPlaybackRoutes(app);
+  const withCover = item => ({ ...item, ...animeCoverFields(item, { database }) });
 
   // ==================== Search ====================
   app.get('/api/oi/search', async (req, res) => {
@@ -113,18 +115,20 @@ function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAu
     try {
       let dbResults;
       const excludeNid = parseInt(excludeId) || 0;
-      if (genreList.length > 0) dbResults = database.getBrowseFromDb({ genre: genreList[0] }, 1, 10);
-      else dbResults = database.getRankingsFromDb('popular', 10);
+      const candidateLimit = excludeNid ? 11 : 10;
+      if (genreList.length > 0) dbResults = database.getBrowseFromDb({ genre: genreList[0] }, 1, candidateLimit);
+      else dbResults = database.getRankingsFromDb('popular', candidateLimit);
 
-      let rawResults = dbResults.results.map(dbMetaToResult);
-      if (excludeNid) rawResults = rawResults.filter(r => r.id !== excludeNid);
+      const rows = Array.isArray(dbResults) ? dbResults : dbResults.results || [];
+      let rawResults = rows.map(dbMetaToResult);
+      if (excludeNid) rawResults = rawResults.filter(r => r.id !== `anilist_${excludeNid}`);
       rawResults = rawResults.slice(0, 10);
       // Chinese titles pre-resolved during sync
 
       const results = rawResults.map(r => ({
         id: r.id, title: r.title || '未知', romaji: r.romajiTitle || '',
         nativeTitle: r.nativeTitle || '', englishTitle: r.englishTitle || '',
-        image: r.image || '', score: r.score || 0, seasonYear: r.seasonYear || '',
+        image: r.image || '', coverFallback: r.coverFallback || '', score: r.score || 0, seasonYear: r.seasonYear || '',
         episodes: r.episodes || '?', status: r.status || 'UNKNOWN', format: r.format || '',
         oiMsg: r.oiMsg || r.title || '', oiIndex: r.oiIndex || 1
       }));
@@ -166,6 +170,7 @@ function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAu
         }
       }
       entries = entries.filter(entry => titlesShareAnimeFranchise(effectiveQuery, entry.title));
+      enrichSearchResultsWithAniListMeta(entries, database);
       const order = {'TV':0,'OVA':1,'剧场版':2,'特别篇':3};
       entries.sort((a,b) => (order[a.type] ?? 9) - (order[b.type] ?? 9));
       return res.json({
@@ -185,6 +190,7 @@ function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAu
       const cached = await getOrSetCache(cacheObj, CACHE_KEY, CACHE_TTL, async () => {
         let results = await fetchOiCategory(POPULAR_ANIME, httpFetch, 14);
         if (!results.length) results = fetchCategoryFromDbByTitles(database, POPULAR_ANIME, 14);
+        results = withAnimeCovers(results, database);
         const data = { results, total: results.length };
         return data;
       }, { cacheWhen: value => value.results.length > 0 });
@@ -218,6 +224,7 @@ function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAu
       const cached = await getOrSetCache(cacheObj, CACHE_KEY, CACHE_TTL, async () => {
         let results = await fetchOiCategory(CLASSIC_ANIME, httpFetch, 10);
         if (!results.length) results = fetchCategoryFromDbByTitles(database, CLASSIC_ANIME, 10);
+        results = withAnimeCovers(results, database);
         const data = { results, total: results.length };
         return data;
       }, { cacheWhen: value => value.results.length > 0 });
@@ -381,7 +388,7 @@ function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAu
           const list = Array.isArray(r.data.data) ? r.data.data : [];
           if (list.length > 0) {
             const bestIdx = selectBestOiResult(list, aliased, seasonInfo);
-            return res.json({ found:true, msg:aliased, n:bestIdx+1, title:list[bestIdx].name||aliased, image:list[bestIdx].image||'', ji:list[bestIdx].ji||'', year:list[bestIdx].year||'' });
+            return res.json(withCover({ found:true, msg:aliased, n:bestIdx+1, title:list[bestIdx].name||aliased, image:list[bestIdx].image||'', ji:list[bestIdx].ji||'', year:list[bestIdx].year||'' }));
           }
         }
       } catch (e) {}
@@ -407,7 +414,7 @@ function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAu
             const list = Array.isArray(r.data.data) ? r.data.data : [];
             if (list.length > 0) {
               const bestIdx = selectBestOiResult(list, v, seasonInfo);
-              return res.json({ found:true, msg:v, n:bestIdx+1, title:list[bestIdx].name||chinese, image:list[bestIdx].image||'', ji:list[bestIdx].ji||'', year:list[bestIdx].year||'' });
+              return res.json(withCover({ found:true, msg:v, n:bestIdx+1, title:list[bestIdx].name||chinese, image:list[bestIdx].image||'', ji:list[bestIdx].ji||'', year:list[bestIdx].year||'' }));
             }
           }
         } catch (e) {}
@@ -438,7 +445,7 @@ function mountOiapiRoutes(app, { database, httpFetch, cache: cacheObj, requireAu
           if (list.length > 0) {
             const bestIdx = selectBestOiResult(list, t, seasonInfo);
             const a = list[bestIdx];
-            return res.json({ found:true, msg:a.name||t, n:bestIdx+1, title:a.name||t, image:a.image||'', ji:a.ji||'', year:a.year||'' });
+            return res.json(withCover({ found:true, msg:a.name||t, n:bestIdx+1, title:a.name||t, image:a.image||'', ji:a.ji||'', year:a.year||'' }));
           }
         }
       } catch (e) {}

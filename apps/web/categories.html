@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://oiapi.net">
 <link rel="preconnect" href="https://graphql.anilist.co">
 <link rel="preconnect" href="https://trace.moe">
-<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="/js/site-utils.js?v=20261016-covers-v1"></script>
 <script src="common.js"></script>
 <style>
 * { margin:0; box-sizing:border-box; }
@@ -225,7 +225,7 @@ async function loadResults(reset = true) {
         return `
           <div class="anime-card" onclick="playAnime(window._animeData[${idx}])">
             <div class="img-wrap">
-              <img src="${a.image || ''}" alt="${escapeHtml(a.title)}" loading="lazy" onerror="this.style.display='none'">
+              <img ${window.SiteUtils.coverImageAttributes(a)} alt="${escapeHtml(a.title)}" loading="lazy">
               ${cardStatusBadge(a) ? '<span class="status-badge">' + escapeHtml(cardStatusBadge(a)) + '</span>' : ''}
             </div>
             <div class="info">
@@ -324,6 +324,6 @@ loadResults(true);
 
 <script src="/js/mobile-app.js" defer></script>
 <script src="/js/anime-agent-config.js" defer></script>
-<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261016-covers-v1" defer></script>
 </body>
 </html>

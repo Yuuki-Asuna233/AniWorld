@@ -4,6 +4,7 @@ const { filterChineseResults, cleanOiTitle } = require('../utils/chinese');
 const { safeJsonParse } = require('../utils/db-helpers');
 const { OI_BASE, smartMatchScore, searchOiWithSubstrings } = require('./oi-helpers');
 const { enrichSearchResultsWithAniListMeta } = require('./catalogue');
+const { animeCoverFields } = require('./anime-covers');
 
 async function buildMergedSearchResults(q, { database, httpFetch }) {
   let degraded = false;
@@ -93,7 +94,7 @@ async function buildMergedSearchResults(q, { database, httpFetch }) {
     id: 'anilist_' + m.anilist_id,
     title: m.title_chinese || m.title_romaji || m.title_native || 'Unknown',
     romajiTitle: m.title_romaji || '', englishTitle: '', nativeTitle: m.title_native || '',
-    image: m.cover_image || '', score: m.average_score || 0, episodes: m.episodes || '?',
+    ...animeCoverFields({}, { metadata: m }), score: m.average_score || 0, episodes: m.episodes || '?',
     status: m.status || 'UNKNOWN', genres: safeJsonParse(m.genres, []),
     source: 'db', format: m.format || '', seasonYear: m.season_year || '',
     oiMsg: m.oi_msg || '', oiIndex: m.oi_index || 0, oiResolved: !!(m.oi_msg && m.oi_index)

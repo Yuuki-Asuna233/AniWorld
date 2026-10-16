@@ -12,6 +12,7 @@ const { stableJson } = require('../../../../baiyu_agent/shared/runtime');
 const { emptyUserMemory } = require('../../../../baiyu_agent/memory/user-memory');
 const { sessionState, rememberResult } = require('../../../../baiyu_agent/memory/session-state');
 const { toolProgress } = require('../../../../baiyu_agent/agents/progress');
+const { withAnimeCovers } = require('../services/anime-covers');
 const activeRequests = new Map();
 
 const ALLOWED_EVENTS = new Set([
@@ -188,6 +189,7 @@ function mountAgentRoutes(app, { database, requireAuth }) {
         },
         signal: controller.signal,
       });
+      result.cards = withAnimeCovers(Array.isArray(result.cards) ? result.cards : [], database);
       if (recovered && !recovered.committed) {
         result.sessionState = sessionState(contextSnapshot.state);
         const ref = rememberResult(result.sessionState, 'final_answer', { cards: result.cards || [], sourceTool: 'business_operation' });
@@ -350,7 +352,8 @@ function mountAgentRoutes(app, { database, requireAuth }) {
     } catch (_) {
       return res.status(503).json({ status: 'unknown', error: '操作结果暂时无法确认，请查看追番或历史状态。' });
     }
-    const result = saved?.result && !saved.error ? { ...saved.result, sessionId: saved.sessionId } : null;
+    const result = saved?.result && !saved.error ? { ...saved.result, sessionId: saved.sessionId,
+      cards: withAnimeCovers(Array.isArray(saved.result.cards) ? saved.result.cards : [], database) } : null;
     if (saved?.committed && result) return res.json({ status: 'completed', result });
     if (Number(active?.userId) === Number(req.user.id)) return res.json({ status: 'running',
       ...(result ? { operationCompleted: true, result } : {}) });
@@ -378,6 +381,7 @@ function mountAgentRoutes(app, { database, requireAuth }) {
     const results = database.getAgentMessages(session.id, 50).map(item => {
       let cards = [];
       try { cards = JSON.parse(item.cards_json || '[]'); } catch (e) {}
+      cards = withAnimeCovers(Array.isArray(cards) ? cards : [], database);
       return { id: item.id, role: item.role, content: item.content, cards, createdAt: item.created_at };
     });
     res.json({ session, results });

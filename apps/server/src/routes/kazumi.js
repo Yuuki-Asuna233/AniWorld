@@ -6,6 +6,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { safeJsonParse } = require('../utils/db-helpers');
+const { animeCoverFields, animeCoverImages } = require('../services/anime-covers');
 const { getCurrentSeasonInfo, hkDateParts, hkWeekday } = require('../utils/date');
 const { buildAiringSchedule } = require('../services/sync');
 const { resolveAnimeMetadata } = require('../services/anime-identity');
@@ -183,6 +184,7 @@ function characterToDetail(character, id) {
  * Convert an anime_meta row to Bangumi-style subject JSON
  */
 function metaToSubject(meta) {
+  const covers = animeCoverFields({}, { metadata: meta });
   const date = parseStartDate(meta.start_date);
   const status = String(meta.status || '').toUpperCase();
   const episodes = Number(meta.episodes) || 0;
@@ -200,13 +202,8 @@ function metaToSubject(meta) {
     name_cn: meta.title_chinese || '',
     summary: '',
     date: formatDate(date),
-    images: {
-      large: meta.cover_image || '',
-      common: meta.cover_image || '',
-      medium: meta.cover_image || '',
-      small: meta.cover_image || '',
-      grid: meta.cover_image || ''
-    },
+    images: animeCoverImages(covers),
+    coverFallback: covers.coverFallback,
     tags: parseGenres(meta.genres),
     rating: {
       rank: meta.popularity || 0,
@@ -231,6 +228,7 @@ function metaToSubject(meta) {
 }
 
 function oiResultToSubject(item) {
+  const covers = animeCoverFields(item);
   const idRaw = item.anilist_id || item.anilistId || item.id || 0;
   const id = Number(String(idRaw).replace(/^anilist_/, '')) || 0;
   const startDate = item.startDate && typeof item.startDate === 'object'
@@ -260,13 +258,8 @@ function oiResultToSubject(item) {
     name_cn: item.title || item.name || item.romajiTitle || '',
     summary: item.synopsis || item.desc || '',
     date: formatDate(date),
-    images: {
-      large: item.image || item.cover || '',
-      common: item.image || item.cover || '',
-      medium: item.image || item.cover || '',
-      small: item.image || item.cover || '',
-      grid: item.image || item.cover || ''
-    },
+    images: animeCoverImages(covers),
+    coverFallback: covers.coverFallback,
     tags: genres.map(name => ({ name, count: 0 })),
     rating: {
       rank: Number(item.popularity || 0),
@@ -618,6 +611,7 @@ function scheduleTrendSnapshots(database, fetcher) {
  * Wrap a subject in the format used by calendar endpoint
  */
 function wrapCalendarItem(meta) {
+  const covers = animeCoverFields({}, { metadata: meta });
   const status = String(meta.status || '').toUpperCase();
   const episodes = Number(meta.episodes) || 0;
   const nextEpisode = Number(meta.next_airing_episode) || 0;
@@ -643,13 +637,8 @@ function wrapCalendarItem(meta) {
       : status === 'RELEASING'
         ? Math.max(0, nextEpisode - 1)
         : 0,
-    images: {
-      large: meta.cover_image || '',
-      common: meta.cover_image || '',
-      medium: meta.cover_image || '',
-      small: meta.cover_image || '',
-      grid: meta.cover_image || ''
-    },
+    images: animeCoverImages(covers),
+    coverFallback: covers.coverFallback,
     collection: { doing: 0 }
   };
 }

@@ -1,4 +1,5 @@
 const { canManageAnime, updateAnime } = require('../services/anime-admin');
+const { animeCoverFields } = require('../services/anime-covers');
 
 function mountAnimeAdminRoutes(app, { database, cache, requireAuth }) {
   function adminOnly(req, res, next) {
@@ -17,7 +18,7 @@ function mountAnimeAdminRoutes(app, { database, cache, requireAuth }) {
       perPage: req.query.perPage || req.query.limit
     });
     res.set('Cache-Control', 'no-store');
-    res.json(result);
+    res.json({ ...result, results: result.results.map(meta => ({ ...meta, ...animeCoverFields({}, { metadata: meta }) })) });
   });
 
   app.get('/api/admin/anime/:anilistId', requireAuth, adminOnly, (req, res) => {
@@ -25,7 +26,7 @@ function mountAnimeAdminRoutes(app, { database, cache, requireAuth }) {
     const anime = database.getAnimeMetaById(id);
     if (!anime) return res.status(404).json({ error: '番剧不存在' });
     res.set('Cache-Control', 'no-store');
-    res.json({ anime });
+    res.json({ anime: { ...anime, ...animeCoverFields({}, { metadata: anime }) } });
   });
 
   app.patch('/api/admin/anime/:anilistId', requireAuth, adminOnly, (req, res) => {

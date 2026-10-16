@@ -534,6 +534,7 @@ class _PopularPageState extends State<PopularPage>
                     children: [
                       NetworkImgLayer(
                         src: item.images['large'] ?? '',
+                        fallbackSrc: item.images['fallback'],
                         width: double.infinity,
                         height: 210,
                         type: 'bg',

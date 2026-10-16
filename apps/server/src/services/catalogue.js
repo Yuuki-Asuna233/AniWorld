@@ -5,6 +5,7 @@ const { OI_BASE, generateOiMsgCandidates, selectBestOiResult, resolveCurrentOiSe
 const { resolveAnimeMetadata } = require('./anime-identity');
 const { resolveAnimeEditionPresentation, statusFromOiLabel } = require('./anime-presentation');
 const { getOiAiringState } = require('./airing-reconcile');
+const { animeCoverFields, metadataForCover } = require('./anime-covers');
 
 function formatAniListDate(value) {
   const year = Number(value?.year) || 0;
@@ -17,21 +18,14 @@ function formatAniListDate(value) {
 function enrichSearchResultsWithAniListMeta(results, database) {
   for (const result of results) {
     try {
-      const meta = resolveAnimeMetadata(database, result.oiMsg || result.title, {
-        year: result.year,
-        requireYear: true,
-        minimumScore: 1000
-      });
+      const meta = metadataForCover(result, database);
+      Object.assign(result, animeCoverFields(result, { metadata: meta }));
       if (meta?.anilist_id) {
         const metadata = dbMetaToResult(meta);
         const totalEpisodes = Number(meta.episodes) || 0;
         const nextEpisode = Number(meta.next_airing_episode) || 0;
         result.anilistId = meta.anilist_id;
         result.metadataMatched = true;
-        if (metadata.image) {
-          result.coverFallback = result.image || '';
-          result.image = metadata.image;
-        }
         result.seasonYear = metadata.year;
         result.startDate = metadata.startDate;
         // Preserve a known episode count when local metadata is incomplete.
@@ -165,9 +159,10 @@ async function getAnimeDetails({ msg, n }, { database, httpFetch, cache: cacheOb
       aniEpisodes = oiAiringState.currentEpisode;
       episodeCountSource = 'oiapi_finished';
     }
+    const covers = animeCoverFields({ anilistId: aniId, title: d.name || msg, year: d.year, image: d.image }, { database });
     const response = {
-      name:d.name||'', image:aniCover||d.image||'',
-      coverFallback:aniCover ? (d.image||'') : '', class:d.class||'', ji:d.ji||'',
+      name:d.name||'', ...covers,
+      class:d.class||'', ji:d.ji||'',
       year:d.year||'', desc:d.desc||'', playlist:d.playlist||[], source:'oiapi',
       resolved_n:numericN, metadataMatched:aniId > 0,
       episodes:String(aniEpisodes), aniStatus, aniNextAiring, aniGenres,

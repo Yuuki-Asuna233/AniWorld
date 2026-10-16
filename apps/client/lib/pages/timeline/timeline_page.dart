@@ -153,6 +153,7 @@ class _TimelinePageState extends State<TimelinePage>
                     borderRadius: BorderRadius.circular(12),
                     child: NetworkImgLayer(
                       src: item.images['large'] ?? '',
+                      fallbackSrc: item.images['fallback'],
                       width: 86,
                       height: 116,
                     ),

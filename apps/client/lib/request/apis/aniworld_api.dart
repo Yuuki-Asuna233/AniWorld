@@ -64,6 +64,7 @@ extension AniWorldAgentCardBangumiMapper on AniWorldAgentCard {
       'anilistId': anilistId,
       'title': title,
       'image': image,
+      'coverFallback': coverFallback,
       'score': score,
       'year': year,
       'status': status,
@@ -1207,11 +1208,10 @@ class AniWorldApi {
     );
     final id = parsedId > 0 ? parsedId : title.hashCode.abs();
     final covers = [
-      if (item['metadataMatched'] == true) item['aniCover'],
       item['image'],
+      item['coverFallback'],
       item['cover'],
       item['aniCover'],
-      item['coverFallback'],
     ]
         .map((value) => '${value ?? ''}'.trim())
         .where((url) => url.isNotEmpty)

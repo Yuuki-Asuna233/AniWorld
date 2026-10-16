@@ -103,6 +103,7 @@ class AniWorldAgentCard {
     required this.anilistId,
     required this.title,
     required this.image,
+    this.coverFallback = '',
     required this.score,
     required this.year,
     required this.status,
@@ -113,6 +114,7 @@ class AniWorldAgentCard {
   final int anilistId;
   final String title;
   final String image;
+  final String coverFallback;
   final double score;
   final String year;
   final String status;
@@ -124,6 +126,7 @@ class AniWorldAgentCard {
       anilistId: int.tryParse('${json['anilistId'] ?? 0}') ?? 0,
       title: '${json['title'] ?? ''}',
       image: '${json['image'] ?? ''}',
+      coverFallback: '${json['coverFallback'] ?? ''}',
       score: double.tryParse('${json['score'] ?? 0}') ?? 0,
       year: '${json['year'] ?? ''}',
       status: '${json['status'] ?? ''}',

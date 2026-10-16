@@ -273,6 +273,7 @@ class _UpdateNotificationsPageState extends State<UpdateNotificationsPage> {
                         borderRadius: BorderRadius.circular(11),
                         child: NetworkImgLayer(
                           src: notification.bangumiItem.images['large'] ?? '',
+                          fallbackSrc: notification.bangumiItem.images['fallback'],
                           width: 76,
                           height: 104,
                         ),

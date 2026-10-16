@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://oiapi.net">
 <link rel="preconnect" href="https://graphql.anilist.co">
 <link rel="preconnect" href="https://trace.moe">
-<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="/js/site-utils.js?v=20261016-covers-v1"></script>
 <script src="common.js"></script>
 <style>
 * { margin:0; box-sizing:border-box; }
@@ -107,7 +107,7 @@ function render(results, query) {
   container.innerHTML = `<h3 style="color:#8b949e;margin-bottom:16px;">「${escapeHtml(query)}」的搜索结果（${results.length}部）</h3>` +
     results.map((a, i) => `
       <div class="result-card" onclick="playSearchResult(${i})">
-        <img src="${a.image || ''}" alt="${escapeHtml(a.title)}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22140%22><rect fill=%2221262d%22 width=%22100%22 height=%22140%22/><text x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%228b949e%22>无封面</text></svg>'">
+        <img ${window.SiteUtils.coverImageAttributes(a)} alt="${escapeHtml(a.title)}" loading="lazy">
         <div class="result-info">
           <div class="result-title">${escapeHtml(a.title)}</div>
           <div class="result-meta">
@@ -146,6 +146,6 @@ function playSearchResult(idx) {
 
 <script src="/js/mobile-app.js" defer></script>
 <script src="/js/anime-agent-config.js" defer></script>
-<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261016-covers-v1" defer></script>
 </body>
 </html>

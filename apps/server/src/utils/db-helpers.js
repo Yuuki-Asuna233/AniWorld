@@ -1,4 +1,5 @@
 // Database helper utilities
+const { animeCoverFields } = require('../services/anime-covers');
 
 function dbMetaToResult(m) {
   const totalEpisodes = Number(m.episodes) || 0;
@@ -13,7 +14,7 @@ function dbMetaToResult(m) {
     romajiTitle: m.title_romaji || '',
     englishTitle: m.title_romaji || '',
     nativeTitle: m.title_native || '',
-    image: m.cover_image || '',
+    ...animeCoverFields({}, { metadata: m }),
     score: m.average_score || 0,
     episodes: m.episodes || '?',
     status: m.status || 'UNKNOWN',

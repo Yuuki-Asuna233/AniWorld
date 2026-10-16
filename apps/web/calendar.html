@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="/css/mobile-app.css">
 <title>更新日历 - AniWorld</title>
-<script src="/js/site-utils.js?v=20261011T043709Z"></script>
+<script src="/js/site-utils.js?v=20261016-covers-v1"></script>
 <script src="common.js"></script>
 <style>
 * { margin:0; box-sizing:border-box; }
@@ -103,7 +103,7 @@ async function loadCalendar() {
               const idx = window._animeData.push(a) - 1;
               return `
                 <div class="day-item" onclick="playAnime(window._animeData[${idx}])">
-                  <img src="${a.image || ''}" alt="" onerror="this.style.display='none'">
+                  <img ${window.SiteUtils.coverImageAttributes(a)} alt="">
                   <div class="info">
                     <div class="title">${escapeHtml(a.title)}</div>
                     ${a.airingEpisode ? '<div class="ep">📺 第' + a.airingEpisode + '集更新</div>' : ''}
@@ -126,6 +126,6 @@ loadCalendar();
 
 <script src="/js/mobile-app.js" defer></script>
 <script src="/js/anime-agent-config.js" defer></script>
-<script src="/js/anime-agent-widget.js?v=20261012T085600Z" defer></script>
+<script src="/js/anime-agent-widget.js?v=20261016-covers-v1" defer></script>
 </body>
 </html>

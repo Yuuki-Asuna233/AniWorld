@@ -814,6 +814,7 @@ class _ShirahaPageState extends State<ShirahaPage> {
               borderRadius: BorderRadius.circular(9),
               child: NetworkImgLayer(
                 src: card.image,
+                fallbackSrc: card.coverFallback,
                 width: 64,
                 height: 88,
               ),
