@@ -82,6 +82,21 @@ abstract class _CollectController with Store {
         saved.episodes = latest.episodes;
         saved.airedEpisodes = latest.airedEpisodes;
         if (latest.airDate.isNotEmpty) saved.airDate = latest.airDate;
+        final latestCover = latest.images['large']?.trim() ?? '';
+        if (latestCover.isNotEmpty) {
+          final images = {...saved.images, ...latest.images};
+          final fallback = images['fallback']?.trim() ?? '';
+          if (fallback.isEmpty || fallback == latestCover) {
+            images['fallback'] = [
+              saved.images['large'],
+              saved.images['fallback'],
+            ].whereType<String>().map((url) => url.trim()).firstWhere(
+                  (url) => url.isNotEmpty && url != latestCover,
+                  orElse: () => '',
+                );
+          }
+          saved.images = images;
+        }
         await _collectCrudRepository.updateCollectible(saved);
       }
       if (!account.isCurrent || generation != _metadataRefreshGeneration) {
